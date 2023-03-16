@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../model/userModel');
 const { verifyToken } = require('../middleware/token');
-const multer = require("multer");
 
 
 
@@ -135,3 +134,4 @@ router.delete('/user/:id', verifyToken, async (req, res) => {
 
 
 module.exports = router;
+

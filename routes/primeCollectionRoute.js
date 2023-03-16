@@ -1,5 +1,3 @@
-
-
 require('dotenv').config();
 const express = require('express');
 const router = express.Router();
@@ -7,79 +5,70 @@ const multer = require('multer');
 const PrimeCollection = require('../model/primeCollectionModel');
 const { verifyToken, isAdmin } = require('../middleware/token');
 
-//Define multer storage and file filter
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "./uploads");
+const cloudinary = require('cloudinary').v2;
 
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + "-"  + file.originalname);
-    },
+//config
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
-const fileFilter = (req, file, cb) => {
-    if (
-        file.mimetype === "image/jpeg" || file.mimetype === "image/jpg" || file.mimetype === "image/png"
-    ) {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
-};
-
-// Define multer upload middleware
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 1024 * 1024 * 5, // 5 MB
-    },
-    fileFilter: fileFilter,
-});
-
 
 
 //create primeCollection
-router.post('/primeCollection', upload.single('imageUrl'),verifyToken,isAdmin, async(req,res)=>{
-    req.body.imageUrl = req.file.path
-    try{
-        const primeCollection = new PrimeCollection({
-        name: req.body.name,
-        imageUrl: req.body.imageUrl,
-        fabric: req.body.fabric,
-        event: req.body.event,
-        categories: req.body.categories,
-        size: req.body.size,
-        bodyShape: req.body.bodyShape,
-        color: req.body.color,
-        clothMeasurement: req.body.clothMeasurement,
-        rating: req.body.rating,
-        stockAvaliability: req.body.stockAvaliability,
-        age: req.body.age,
-        price: req.body.price
+router.post('/primeCollection', verifyToken, isAdmin, async (req, res) => {
 
-    });
+    const file = req.files.photo;
+    cloudinary.uploader.upload(
+        file.tempFilePath,
+        { resource_type: "image", format: "jpeg" },
+        async (err, result) => {
+            if (err) {
+                console.log(err);
+                res.status(500).json({ success: false, error: "Server error" });
+                return;
+            }
 
-    const newPrimeCollection = await primeCollection.save();
-    console.log(newPrimeCollection);
-    res.status(201).json({ success: true, data: newPrimeCollection });
+            try {
+                const primeCollection = new PrimeCollection({
+                    name: req.body.name,
+                    imageUrl: result.url,
+                    fabric: req.body.fabric,
+                    event: req.body.event,
+                    categories: req.body.categories,
+                    size: req.body.size,
+                    bodyShape: req.body.bodyShape,
+                    color: req.body.color,
+                    clothMeasurement: req.body.clothMeasurement,
+                    rating: req.body.rating,
+                    stockAvaliability: req.body.stockAvaliability,
+                    age: req.body.age,
+                    price: req.body.price
 
-    }catch(error){
-        console.log(error);
-        res.status(500).json({ success: false, error: 'Server error' });
-    }
-})
+                });
+
+                const newPrimeCollection = await primeCollection.save();
+                console.log(newPrimeCollection);
+                res.status(201).json({ success: true, data: newPrimeCollection });
+
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({ success: false, error: 'Server error' });
+            }
+        }
+    );
+});
 
 
 //   Get all clothing categories
-router.get('/primeCollection',  async(req,res)=>{
-    try{
+router.get('/primeCollection', async (req, res) => {
+    try {
 
         const primeCollection = await PrimeCollection.find();
         console.log(primeCollection);
-        res.status(200).json({ success: true, data: primeCollection});
+        res.status(200).json({ success: true, data: primeCollection });
 
-    } catch(error){
+    } catch (error) {
         console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
@@ -87,24 +76,24 @@ router.get('/primeCollection',  async(req,res)=>{
 
 
 //   Get by ID clothing categories
-router.get('/primeCollection/:id', async(req,res)=>{
-    try{
+router.get('/primeCollection/:id', async (req, res) => {
+    try {
 
         const id = req.params.id;
 
-    if (!id) {
-      return res.status(400).json({ success: false, error: 'Invalid request: ID is missing' });
-    }
+        if (!id) {
+            return res.status(400).json({ success: false, error: 'Invalid request: ID is missing' });
+        }
         const primeCollection = await PrimeCollection.findById(id);
 
         if (!primeCollection) {
             return res.status(404).json({ success: false, error: 'Prime collection not found' });
-          }
+        }
         console.log(primeCollection);
-        
-        res.status(200).json({ success: true, data: primeCollection});
 
-    } catch(error){
+        res.status(200).json({ success: true, data: primeCollection });
+
+    } catch (error) {
         console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
@@ -112,15 +101,27 @@ router.get('/primeCollection/:id', async(req,res)=>{
 
 
 //update and  Update an existing clothing prime Collection  by ID
-router.put("/primeCollection/:id", verifyToken,isAdmin, upload.single("imageUrl"), async (req, res) => {
+router.put("/primeCollection/:id", verifyToken, isAdmin, async (req, res) => {
     try {
         const primeCollection = await PrimeCollection.findById(req.params.id);
         if (primeCollection == null) {
             console.log("Prime Collection not Found");
             return res.status(404).json({ message: "Prime Collection not found" });
         }
+
+        // Check if a new image file is being uploaded
+        let newImageUrl = primeCollection.imageUrl;
+        if (req.files && req.files.photo) {
+            const file = req.files.photo;
+            const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                resource_type: 'image',
+                format: 'jpeg',
+            });
+            newImageUrl = result.url;
+        }
+
         primeCollection.name = req.body.name || primeCollection.name;
-        primeCollection.imageUrl = req.body.imageUrl || primeCollection.imageUrl;
+        primeCollection.imageUrl = newImageUrl;
         primeCollection.fabric = req.body.fabric || primeCollection.fabric;
         primeCollection.event = req.body.event || primeCollection.event;
         primeCollection.categories = req.body.categories || primeCollection.categories;
@@ -134,14 +135,9 @@ router.put("/primeCollection/:id", verifyToken,isAdmin, upload.single("imageUrl"
         primeCollection.price = req.body.price || primeCollection.price
 
 
-        if (req.file) {
-            console.log(req.file.path);
-            primeCollection.imageUrl = req.file.path;
-        }
-
         const upadtedPrimeCollection = await primeCollection.save();
         console.log(upadtedPrimeCollection);
-        res.status(201).json({ success: true, message: `Prime Collection Update`,data: upadtedPrimeCollection });
+        res.status(201).json({ success: true, message: `Prime Collection Update`, data: upadtedPrimeCollection });
 
     } catch (err) {
         console.log(err);
@@ -152,15 +148,27 @@ router.put("/primeCollection/:id", verifyToken,isAdmin, upload.single("imageUrl"
 
 
 //update and  Update an existing clothing prime Collection  by all
-router.put("/primeCollection", verifyToken,isAdmin, upload.single("imageUrl"), async (req, res) => {
+router.put("/primeCollection", verifyToken, isAdmin, async (req, res) => {
     try {
         const primeCollection = await PrimeCollection.find();
         if (primeCollection == null) {
             console.log("Prime Collection not Found");
             return res.status(404).json({ message: "Prime Collection not found" });
         }
+
+        // Check if a new image file is being uploaded
+        let newImageUrl = primeCollection.imageUrl;
+        if (req.files && req.files.photo) {
+            const file = req.files.photo;
+            const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                resource_type: 'image',
+                format: 'jpeg',
+            });
+            newImageUrl = result.url;
+        }
+
         primeCollection.name = req.body.name || primeCollection.name;
-        primeCollection.imageUrl = req.body.imageUrl || primeCollection.imageUrl;
+        primeCollection.imageUrl = newImageUrl;
         primeCollection.fabric = req.body.fabric || primeCollection.fabric;
         primeCollection.event = req.body.event || primeCollection.event;
         primeCollection.categories = req.body.categories || primeCollection.categories;
@@ -174,14 +182,9 @@ router.put("/primeCollection", verifyToken,isAdmin, upload.single("imageUrl"), a
         primeCollection.price = req.body.price || primeCollection.price
 
 
-        if (req.file) {
-            console.log(req.file.path);
-            primeCollection.imageUrl = req.file.path;
-        }
-
         const upadtedPrimeCollection = await primeCollection.save();
         console.log(upadtedPrimeCollection);
-        res.status(201).json({ success: true, message:`Prime Collection Update`,data: upadtedPrimeCollection });
+        res.status(201).json({ success: true, message: `Prime Collection Update`, data: upadtedPrimeCollection });
 
     } catch (err) {
         console.log(err);
@@ -192,9 +195,9 @@ router.put("/primeCollection", verifyToken,isAdmin, upload.single("imageUrl"), a
 
 
 //delete and Delete a clothing prime Collection 
-router.delete("/primeCollection/:id", verifyToken,isAdmin, async (req, res) => {
+router.delete("/primeCollection/:id", verifyToken, isAdmin, async (req, res) => {
     try {
-        
+
         const primeCollection = await PrimeCollection.findById(req.params.id);
 
         if (primeCollection == null) {
@@ -202,9 +205,15 @@ router.delete("/primeCollection/:id", verifyToken,isAdmin, async (req, res) => {
             return res.status(404).json({ message: "Prime Collection not found" });
         }
 
-        await primeCollection.del();
+        // Delete the image from Cloudinary
+        if (primeCollection.imageUrl) {
+            const publicId = primeCollection.imageUrl.split('/').slice(-1)[0].split('.')[0];
+            await cloudinary.uploader.destroy(publicId);
+        }
+
+        await primeCollection.deleteOne();
         console.log("Prime Collection  Deleted .................");
-        res.status(201).json({ success: true, data: "Prime Collection  Delted ..." });
+        res.status(201).json({ success: true, data: "Prime Collection  Deleted ..." });
 
     } catch (error) {
         console.log(error)
@@ -214,4 +223,4 @@ router.delete("/primeCollection/:id", verifyToken,isAdmin, async (req, res) => {
 })
 
 
-module.exports = router ;
+module.exports = router;

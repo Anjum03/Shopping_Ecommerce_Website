@@ -5,9 +5,15 @@ const app = require("express")();
 const PORT = process.env.PORT  || 4000;
 
 //using DB
-const mongoose = require('mongoose');
 const connectDB = require('./db/connection');
 connectDB();
+
+
+//using cloudinary
+const fileUpload = require('express-fileupload');
+app.use(fileUpload({
+    useTempFiles:true
+}))
 
 
 //using cors
