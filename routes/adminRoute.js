@@ -20,49 +20,48 @@ router.post('/admin/register', function (req, res) {
     // Save the admin user object to the MongoDB database
     admin.save()
         .then(result => {
-            console.log(result);
-            res.status(201).json({ message: "Admin created successfully ..." })
+            res.status(201).json({success:true, message: "Admin created successfully ..." })
         })
         .catch(err => {
-            console.log(err => {
-                console.log(err);
-                res.status(500).json({ error: err });
-            });
+                res.status(500).json({ success: false, error: 'Server error' });
         })
 });
 
+
+//login
 router.post('/admin/login', async (req, res) => {
     const { username, password } = req.body;
 
     const admin = await Admin.findOne({ username });
     // Check if admin exists
     if (!admin) {
-        console.log("Admin not found")
-        return res.status(404).json("Admin not Found");
+        return res.status(404).json({ success: false, message: 'Admin Not Found' });
     }
     // Check if password is correct
     const validPassword = await bcrypt.compare(password, admin.password);
     if (!validPassword) {
-        console.log("Invalid Password");
-        return res.status(400).json("Invalid Password");
+        return res.status(400).json({ success: false, message: 'Invalid Password' });
     }
     // Generate JWT token
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET_KEY);
-    console.log(token);
     res.json({ token: token });
 
 });
 
 
+
 router.get('/admin/dashboard', verifyToken,isAdmin, function (req, res) {
 
     // Only accessible to authenticated admins
-    console.log("Welcome to Admin Dashnoard");
     res.send("Welcome to Admin DashBoard ....");
 });
 
 
 
+router.post('/logout',verifyToken,isAdmin, (req, res) => {
+    res.clearCookie('token');
+    res.status(200).json({ success: true, message: 'Logout' });
+  });
 
 
 

@@ -33,6 +33,9 @@ app.use('/', adminRoute);
 const categoryRoute = require("./routes/categoryRoute");
 app.use('/', categoryRoute);
 
+const productRoute = require("./routes/productRoute");
+app.use('/', productRoute);
+
 const purchaseRoute = require("./routes/purchaseRoute");
 app.use('/', purchaseRoute);
 

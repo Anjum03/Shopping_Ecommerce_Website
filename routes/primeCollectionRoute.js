@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
+const Category = require('../model/categoryModel')
 const PrimeCollection = require('../model/primeCollectionModel');
 const { verifyToken, isAdmin } = require('../middleware/token');
 
@@ -16,7 +16,16 @@ cloudinary.config({
 
 
 //create primeCollection
-router.post('/primeCollection', verifyToken, isAdmin, async (req, res) => {
+router.post('/category/:categoryId/primeCollection', verifyToken, isAdmin, async (req, res) => {
+
+    // Get the category ID from the URL parameter
+    const categoryId = req.params.categoryId;
+    // Find the category in the database
+    const category = await Category.findById(categoryId);
+
+    if (!category) {
+        return res.status(404).send({success:false, error: 'Category not found' });
+    }
 
     const file = req.files.photo;
     cloudinary.uploader.upload(
@@ -24,7 +33,6 @@ router.post('/primeCollection', verifyToken, isAdmin, async (req, res) => {
         { resource_type: "image", format: "jpeg" },
         async (err, result) => {
             if (err) {
-                console.log(err);
                 res.status(500).json({ success: false, error: "Server error" });
                 return;
             }
@@ -46,13 +54,17 @@ router.post('/primeCollection', verifyToken, isAdmin, async (req, res) => {
                     price: req.body.price
 
                 });
-
+                // Save the product to the database
                 const newPrimeCollection = await primeCollection.save();
-                console.log(newPrimeCollection);
+
+                // Add the product to the category's products array
+                category.primeCollections.push(primeCollection._id);
+                await category.save();
+
+                // Send the new product object as the response
                 res.status(201).json({ success: true, data: newPrimeCollection });
 
             } catch (error) {
-                console.log(error);
                 res.status(500).json({ success: false, error: 'Server error' });
             }
         }
@@ -61,99 +73,70 @@ router.post('/primeCollection', verifyToken, isAdmin, async (req, res) => {
 
 
 //   Get all clothing categories
-router.get('/primeCollection', async (req, res) => {
+router.get('/category/:categoryId/primeCollection', async (req, res) => {
     try {
+        const category = await Category.findById(req.params.categoryId).populate('primeCollections');
+        if (!category) {
+            return res.status(404).send({success:false, error: 'Category not found' });
+        }
 
-        const primeCollection = await PrimeCollection.find();
-        console.log(primeCollection);
-        res.status(200).json({ success: true, data: primeCollection });
+        res.status(200).json({ success: true, data: category.primeCollections });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 })
 
 
 //   Get by ID clothing categories
-router.get('/primeCollection/:id', async (req, res) => {
+router.get('/category/:categoryId/primeCollection/:primeCollectionId', async (req, res) => {
     try {
 
-        const id = req.params.id;
+        // Get the category ID from the URL parameter
+        const categoryId = req.params.categoryId;
+        const primeCollectionId = req.params.primeCollectionId;
 
-        if (!id) {
-            return res.status(400).json({ success: false, error: 'Invalid request: ID is missing' });
+        // Find the category in the database
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).send({success:false, error: 'Category not found' });
+
         }
-        const primeCollection = await PrimeCollection.findById(id);
+
+        const primeCollection = await PrimeCollection.findById(primeCollectionId);
 
         if (!primeCollection) {
             return res.status(404).json({ success: false, error: 'Prime collection not found' });
         }
-        console.log(primeCollection);
 
         res.status(200).json({ success: true, data: primeCollection });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, error: 'Server error' });
-    }
-})
-
-
-//update and  Update an existing clothing prime Collection  by ID
-router.put("/primeCollection/:id", verifyToken, isAdmin, async (req, res) => {
-    try {
-        const primeCollection = await PrimeCollection.findById(req.params.id);
-        if (primeCollection == null) {
-            console.log("Prime Collection not Found");
-            return res.status(404).json({ message: "Prime Collection not found" });
-        }
-
-        // Check if a new image file is being uploaded
-        let newImageUrl = primeCollection.imageUrl;
-        if (req.files && req.files.photo) {
-            const file = req.files.photo;
-            const result = await cloudinary.uploader.upload(file.tempFilePath, {
-                resource_type: 'image',
-                format: 'jpeg',
-            });
-            newImageUrl = result.url;
-        }
-
-        primeCollection.name = req.body.name || primeCollection.name;
-        primeCollection.imageUrl = newImageUrl;
-        primeCollection.fabric = req.body.fabric || primeCollection.fabric;
-        primeCollection.event = req.body.event || primeCollection.event;
-        primeCollection.categories = req.body.categories || primeCollection.categories;
-        primeCollection.size = req.body.size || primeCollection.size;
-        primeCollection.bodyShape = req.body.bodyShape || primeCollection.bodyShape;
-        primeCollection.color = req.body.color || primeCollection.color;
-        primeCollection.clothMeasurement = req.body.clothMeasurement || primeCollection.clothMeasurement;
-        primeCollection.rating = req.body.rating || primeCollection.rating;
-        primeCollection.stockAvaliability = req.body.stockAvaliability || primeCollection.stockAvaliability;
-        primeCollection.age = req.body.age || primeCollection.age;
-        primeCollection.price = req.body.price || primeCollection.price
-
-
-        const upadtedPrimeCollection = await primeCollection.save();
-        console.log(upadtedPrimeCollection);
-        res.status(201).json({ success: true, message: `Prime Collection Update`, data: upadtedPrimeCollection });
-
-    } catch (err) {
-        console.log(err);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
 
 
-
-//update and  Update an existing clothing prime Collection  by all
-router.put("/primeCollection", verifyToken, isAdmin, async (req, res) => {
+//update and  Update an existing clothing prime Collection  by ID
+router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyToken, isAdmin, async (req, res) => {
     try {
-        const primeCollection = await PrimeCollection.find();
+
+        // Get the category ID from the URL parameter
+        const categoryId = req.params.categoryId;
+        const primeCollectionId = req.params.primeCollectionId;
+
+        // Find the category in the database
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).send({success:false, error: 'Category not found' });
+        }
+
+
+        const primeCollection = await PrimeCollection.findById(primeCollectionId);
         if (primeCollection == null) {
-            console.log("Prime Collection not Found");
-            return res.status(404).json({ message: "Prime Collection not found" });
+            return res.status(404).json({success:false, message: "Prime Collection not found" });
         }
 
         // Check if a new image file is being uploaded
@@ -171,7 +154,7 @@ router.put("/primeCollection", verifyToken, isAdmin, async (req, res) => {
         primeCollection.imageUrl = newImageUrl;
         primeCollection.fabric = req.body.fabric || primeCollection.fabric;
         primeCollection.event = req.body.event || primeCollection.event;
-        primeCollection.categories = req.body.categories || primeCollection.categories;
+        primeCollection.category = req.body.category || primeCollection.category;
         primeCollection.size = req.body.size || primeCollection.size;
         primeCollection.bodyShape = req.body.bodyShape || primeCollection.bodyShape;
         primeCollection.color = req.body.color || primeCollection.color;
@@ -183,11 +166,14 @@ router.put("/primeCollection", verifyToken, isAdmin, async (req, res) => {
 
 
         const upadtedPrimeCollection = await primeCollection.save();
-        console.log(upadtedPrimeCollection);
+
+        // Add the product to the category's products array
+        category.primeCollections.push(primeCollection._id);
+        await category.save();
+
         res.status(201).json({ success: true, message: `Prime Collection Update`, data: upadtedPrimeCollection });
 
     } catch (err) {
-        console.log(err);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -195,14 +181,27 @@ router.put("/primeCollection", verifyToken, isAdmin, async (req, res) => {
 
 
 //delete and Delete a clothing prime Collection 
-router.delete("/primeCollection/:id", verifyToken, isAdmin, async (req, res) => {
+router.delete("/category/:categoryId/primeCollection/:primeCollectionId", verifyToken, isAdmin, async (req, res) => {
     try {
 
-        const primeCollection = await PrimeCollection.findById(req.params.id);
+        // Get the category ID from the URL parameter
+        const categoryId = req.params.categoryId;
+        const primeCollectionId = req.params.primeCollectionId;
 
-        if (primeCollection == null) {
-            console.log("Prime Collection not Found")
-            return res.status(404).json({ message: "Prime Collection not found" });
+        // Find the category in the database
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).send({success:false, error: 'Category not found' });
+        }
+
+        // Find the product in the category's products array
+        const primeCollectionIndex = category.primeCollections.findIndex((primeCollection) => primeCollection._id.toString() === primeCollectionId);
+        const primeCollection = category.primeCollections[primeCollectionIndex];
+
+
+        if (!primeCollection) {
+            return res.status(404).json({success:false, message: "Prime Collection not found" });
         }
 
         // Delete the image from Cloudinary
@@ -211,12 +210,14 @@ router.delete("/primeCollection/:id", verifyToken, isAdmin, async (req, res) => 
             await cloudinary.uploader.destroy(publicId);
         }
 
-        await primeCollection.deleteOne();
-        console.log("Prime Collection  Deleted .................");
+        // Remove the product from the category's products array
+        category.primeCollections.splice(primeCollectionIndex, 1);
+
+        // Save the updated category to the database
+        await category.save();
         res.status(201).json({ success: true, data: "Prime Collection  Deleted ..." });
 
     } catch (error) {
-        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
 
     }

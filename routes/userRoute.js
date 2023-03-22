@@ -17,7 +17,6 @@ router.post('/register', async (req, res) => {
         const userExists = await User.findOne({ email });
 
         if (userExists) {
-            console.log("Email Already Exist")
             res.status(400).json({ success: false, error: 'Email already registered' });
             return;
         }
@@ -32,7 +31,6 @@ router.post('/register', async (req, res) => {
         res.status(201).json({ success: true, token });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -46,15 +44,14 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-            console.log("Invalid Creditals")
-            res.status(401).json({ success: false, error: 'User Invalid//////Invalid credentials' });
+            res.status(401).json({ success: false, error: 'User Invalid/Invalid credentials' });
             return;
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {
-            console.log("Password  wrong")
+            res.status(400).json({message:"`Password Wrong"})
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "3d" });
@@ -72,7 +69,6 @@ router.post('/login', async (req, res) => {
         res.status(200).json({ success: true, token, isAdmin });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 })
@@ -85,7 +81,6 @@ router.get('/user', verifyToken, async (req, res) => {
         res.status(200).json({ success: true, data: user });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 
@@ -108,7 +103,6 @@ router.put('/user/:id', verifyToken, async (req, res) => {
 
         res.status(200).json({ success: true, data: updatedUser });
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -126,7 +120,6 @@ router.delete('/user/:id', verifyToken, async (req, res) => {
 
         res.status(200).json({ success: true, data: deletedUser });
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });

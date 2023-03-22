@@ -11,11 +11,9 @@ const { verifyToken, isAdmin } = require('../middleware/token');
 router.get('/purchase', verifyToken, async (req, res) => {
     try {
         const purchase = await Purchase.find();
-        console.log(purchase)
         res.status(200).json({ success: true, data: purchase });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -40,10 +38,8 @@ router.post('/purchase', verifyToken, async(req,res)=>{
           });
 
           await purchase.save();
-          console.log( 'Purchase record created successfully')
           res.status(201).json({ success:true, message: 'Purchase record created successfully', data: purchase });        
     } catch (error) {
-        console.error(error);
     res.status(500).json({success:false,  message: 'Internal server error' });
     }
 });
@@ -67,11 +63,9 @@ router.put('/purchase/:id', verifyToken,isAdmin, async (req, res) => {
 
         await purchase.save();
 
-        console.log('Purchase record updated successfully' )
         res.status(200).json({success:true,  message: 'Purchase record updated successfully', data:purchase});
 
     }catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Internal server error' });
       }
 });
@@ -90,12 +84,10 @@ router.delete('/purchase/:id', verifyToken,isAdmin, async (req, res) => {
 
         await purchase.deleteOne();
 
-        console.log(purchase)
         res.status(200).json({ success: true,message:`Purchase Record delete`, data: purchase });
 
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
