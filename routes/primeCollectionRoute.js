@@ -48,7 +48,7 @@ router.post('/category/:categoryId/primeCollection', verifyToken, isAdmin, async
                     bodyShape: req.body.bodyShape,
                     color: req.body.color,
                     clothMeasurement: req.body.clothMeasurement,
-                    rating: req.body.rating,
+                    returnPolicy: req.body.returnPolicy,
                     stockAvaliability: req.body.stockAvaliability,
                     age: req.body.age,
                     price: req.body.price
@@ -72,12 +72,22 @@ router.post('/category/:categoryId/primeCollection', verifyToken, isAdmin, async
 });
 
 
-//   Get all clothing categories
+//   Get all clothing categories with pagination
 router.get('/category/:categoryId/primeCollection', async (req, res) => {
     try {
         const category = await Category.findById(req.params.categoryId).populate('primeCollections');
+
         if (!category) {
             return res.status(404).send({success:false, error: 'Category not found' });
+        }
+
+        //pagination
+
+        let primeCollections = category.primeCollections;
+
+        const qNew = req.query.new;
+        if (qNew) {
+            primeCollections = primeCollections.sort({createdAt: -1}).limit(10)
         }
 
         res.status(200).json({ success: true, data: category.primeCollections });
@@ -93,21 +103,15 @@ router.get('/category/:categoryId/primeCollection/:primeCollectionId', async (re
     try {
 
         // Get the category ID from the URL parameter
-        const categoryId = req.params.categoryId;
-        const primeCollectionId = req.params.primeCollectionId;
+        const {categoryId, primeCollectionId} = req.params ;
 
         // Find the category in the database
         const category = await Category.findById(categoryId);
-
-        if (!category) {
-            return res.status(404).send({success:false, error: 'Category not found' });
-
-        }
-
         const primeCollection = await PrimeCollection.findById(primeCollectionId);
 
-        if (!primeCollection) {
-            return res.status(404).json({ success: false, error: 'Prime collection not found' });
+        if (!category || !primeCollection) {
+            return res.status(404).send({success:false, error: 'PrimeCollection or Category not found' });
+
         }
 
         res.status(200).json({ success: true, data: primeCollection });
@@ -123,20 +127,14 @@ router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyTok
     try {
 
         // Get the category ID from the URL parameter
-        const categoryId = req.params.categoryId;
-        const primeCollectionId = req.params.primeCollectionId;
+        const {categoryId, primeCollectionId} = req.params ;
 
         // Find the category in the database
         const category = await Category.findById(categoryId);
-
-        if (!category) {
-            return res.status(404).send({success:false, error: 'Category not found' });
-        }
-
-
         const primeCollection = await PrimeCollection.findById(primeCollectionId);
-        if (primeCollection == null) {
-            return res.status(404).json({success:false, message: "Prime Collection not found" });
+
+        if (!category || !primeCollection) {
+            return res.status(404).send({success:false, error: 'Prime Collection or tegory not found' });
         }
 
         // Check if a new image file is being uploaded
@@ -159,7 +157,7 @@ router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyTok
         primeCollection.bodyShape = req.body.bodyShape || primeCollection.bodyShape;
         primeCollection.color = req.body.color || primeCollection.color;
         primeCollection.clothMeasurement = req.body.clothMeasurement || primeCollection.clothMeasurement;
-        primeCollection.rating = req.body.rating || primeCollection.rating;
+        primeCollection.returnPolicy = req.body.returnPolicy || primeCollection.returnPolicy;
         primeCollection.stockAvaliability = req.body.stockAvaliability || primeCollection.stockAvaliability;
         primeCollection.age = req.body.age || primeCollection.age;
         primeCollection.price = req.body.price || primeCollection.price
@@ -185,24 +183,19 @@ router.delete("/category/:categoryId/primeCollection/:primeCollectionId", verify
     try {
 
         // Get the category ID from the URL parameter
-        const categoryId = req.params.categoryId;
-        const primeCollectionId = req.params.primeCollectionId;
+        const {categoryId, primeCollectionId} = req.params ;
 
         // Find the category in the database
         const category = await Category.findById(categoryId);
 
-        if (!category) {
-            return res.status(404).send({success:false, error: 'Category not found' });
+        if (!category || !primeCollection) {
+            return res.status(404).send({success:false, error: 'Prime Collection or Category not found' });
         }
 
         // Find the product in the category's products array
         const primeCollectionIndex = category.primeCollections.findIndex((primeCollection) => primeCollection._id.toString() === primeCollectionId);
         const primeCollection = category.primeCollections[primeCollectionIndex];
 
-
-        if (!primeCollection) {
-            return res.status(404).json({success:false, message: "Prime Collection not found" });
-        }
 
         // Delete the image from Cloudinary
         if (primeCollection.imageUrl) {

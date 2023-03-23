@@ -16,13 +16,23 @@ cloudinary.config({
 //Define route for managing clothing products.
 
 
-// Get all products in a category
+// Get all products in a category with paginaton
 router.get('/category/:categoryId/product', verifyToken, isAdmin, async (req, res) => {
   try {
       const category = await Category.findById(req.params.categoryId).populate('products');
       if (!category) {
           return res.status(404).send({ error: 'Category not found' });
       }
+
+ //pagination
+
+ let products = category.products;
+
+ const qNew = req.query.new;
+ if (qNew) {
+     products = products.sort({createdAt: -1}).limit(10)
+ }
+
       res.status(200).json({ success: true, data: category.products });
 
   } catch (error) {
@@ -37,22 +47,15 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
     try {
 
         // Get the category ID from the URL parameter
-        const categoryId = req.params.categoryId;
-        const productId = req.params.productId;
-        
+        const {productId, categoryId} = req.params ;
+
         // Find the category in the database
         const category = await Category.findById(categoryId);
-        
-        if (!category) {
-            return res.status(404).send({ error: 'Category not found' });
-            
-        }
-        
-
         const product = await Product.findById(productId);
         
-        if (!product) {
-            return res.status(404).json({ success: false, error: 'Product  not found' });
+        if (!category || !product) {
+            return res.status(404).send({ error: 'Product or Category not found' });
+            
         }
 
         res.status(200).json({ success: true, data: product });
@@ -136,7 +139,7 @@ router.post("/category/:categoryId/product", verifyToken, isAdmin, async (req, r
                 bodyShape: req.body.bodyShape,
                 color: req.body.color,
                 clothMeasurement: req.body.clothMeasurement,
-                rating: req.body.rating,
+                returnPolicy: req.body.returnPolicy,
                 stockAvaliability: req.body.stockAvaliability,
                 age: req.body.age,
                 price: req.body.price,
@@ -167,20 +170,14 @@ router.put('/category/:categoryId/product/:productId', verifyToken, isAdmin, asy
   try {
 
       // Get the category ID from the URL parameter
-      const categoryId = req.params.categoryId;
-      const productId = req.params.productId;
+      const {productId, categoryId} = req.params ;
 
       // Find the category in the database
       const category = await Category.findById(categoryId);
-
-      if (!category) {
-          return res.status(404).send({ error: 'Category not found' });
-      }
-
-
       const product = await Product.findById(productId);
-      if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
+
+      if (!category || !product) {
+          return res.status(404).send({ error: 'Product or Category not found' });
       }
 
       // // Check if a new image file is being uploaded
@@ -205,7 +202,7 @@ router.put('/category/:categoryId/product/:productId', verifyToken, isAdmin, asy
       product.color = req.body.color || product.color;
       product.clothMeasurement =
           req.body.clothMeasurement || product.clothMeasurement;
-      product.rating = req.body.rating || product.rating;
+      product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
       product.stockAvaliability =
           req.body.stockAvaliability || product.stockAvaliability;
       product.age = req.body.age || product.age;
@@ -232,23 +229,19 @@ router.delete('/category/:categoryId/product/:productId', verifyToken, isAdmin, 
   try {
 
       // Get the category ID from the URL parameter
-      const categoryId = req.params.categoryId;
-      const productId = req.params.productId;
+      const {productId, categoryId} = req.params ;
 
       // Find the category in the database
       const category = await Category.findById(categoryId);
       
-      if (!category) {
-          return res.status(404).send({ error: 'Category not found' });
+      if (!category || !product) {
+          return res.status(404).send({ error: 'Product or Category not found' });
       }
 
    // Find the product in the category's products array
    const productIndex = category.products.findIndex((product) => product._id.toString() === productId);
    const product = category.products[productIndex];
 
-       if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
-  }
 
       // Delete the image from Cloudinary
       if (product.imageUrl) {
