@@ -45,6 +45,9 @@ app.use('/', primeCollectionRoute);
 const userRoute = require("./routes/userRoute");
 app.use('/', userRoute);
 
+const userQueryRoute = require("./routes/userEmailQurey");
+app.use('/', userQueryRoute);
+
 
 app.listen(PORT, ()=>{
     console.log(`Server is Started.... :)`)
