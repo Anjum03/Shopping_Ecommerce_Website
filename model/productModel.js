@@ -1,9 +1,5 @@
 
 
-
-
-
-
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
@@ -11,7 +7,6 @@ const productSchema = new mongoose.Schema({
     imageUrl: { type: String, required:true },
     fabric:{ type: String },
     event:{ type: String },
-    // categories:{ type: Array },
     category:{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     size:{ type: String },
     bodyShape:{ type: String },

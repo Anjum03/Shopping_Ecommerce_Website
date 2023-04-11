@@ -2,42 +2,42 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Product = require('../model/productModel');
-const Category = require('../model/categoryModel')
-const { verifyToken, isAdmin } = require('../middleware/token');
+const Category = require('../model/categoryModel');
+const { verifyAdminToken, isAdmin } = require('../middleware/token');
 const cloudinary = require('cloudinary').v2;
 
 //config
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 //Define route for managing clothing products.
 
 
 // Get all products in a category with paginaton
-router.get('/category/:categoryId/product', verifyToken, isAdmin, async (req, res) => {
-  try {
-      const category = await Category.findById(req.params.categoryId).populate('products');
-      if (!category) {
-          return res.status(404).send({ error: 'Category not found' });
-      }
+router.get('/category/:categoryId/product', async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.categoryId).populate('products');
+        if (!category) {
+            return res.status(404).send({ error: 'Category not found' });
+        }
 
- //pagination
+        //pagination
 
- let products = category.products;
+        let products = category.products;
 
- const qNew = req.query.new;
- if (qNew) {
-     products = products.sort({createdAt: -1}).limit(10)
- }
+        const qNew = req.query.new;
+        if (qNew) {
+            products = products.sort({ createdAt: -1 }).limit(10)
+        }
 
-      res.status(200).json({ success: true, data: category.products });
+        res.status(200).json({ success: true, data: category.products });
 
-  } catch (error) {
-      res.status(500).json({ success: false, error: 'Server error' });
-  }
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 });
 
 
@@ -47,15 +47,15 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
     try {
 
         // Get the category ID from the URL parameter
-        const {productId, categoryId} = req.params ;
+        const { productId, categoryId } = req.params;
 
         // Find the category in the database
         const category = await Category.findById(categoryId);
         const product = await Product.findById(productId);
-        
+
         if (!category || !product) {
             return res.status(404).send({ error: 'Product or Category not found' });
-            
+
         }
 
         res.status(200).json({ success: true, data: product });
@@ -105,7 +105,7 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
 
 // Add a new product to a category
 
-router.post("/category/:categoryId/product", verifyToken, isAdmin, async (req, res) => {
+router.post("/category/:categoryId/product",verifyAdminToken,isAdmin,  async (req, res) => {
 
     // Get the category ID from the URL parameter
     const categoryId = req.params.categoryId;
@@ -165,102 +165,115 @@ router.post("/category/:categoryId/product", verifyToken, isAdmin, async (req, r
 
 //update and  Update an existing clothing product y ID
 //upadte the product in a category
-router.put('/category/:categoryId/product/:productId', verifyToken, isAdmin, async (req, res) => {
+router.put('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin, async (req, res) => {
 
-  try {
+    try {
 
-      // Get the category ID from the URL parameter
-      const {productId, categoryId} = req.params ;
+        // Get the category ID from the URL parameter
+        const { productId, categoryId } = req.params;
 
-      // Find the category in the database
-      const category = await Category.findById(categoryId);
-      const product = await Product.findById(productId);
+        // Find the category in the database
+        const category = await Category.findById(categoryId);
+        const product = await Product.findById(productId);
 
-      if (!category || !product) {
-          return res.status(404).send({ error: 'Product or Category not found' });
-      }
+        if (!category || !product) {
+            return res.status(404).send({ error: 'Product or Category not found' });
+        }
 
-      // // Check if a new image file is being uploaded
-      let newImageUrl = product.imageUrl;
-      if (req.files && req.files.photo) {
-          const file = req.files.photo;
-          const result = await cloudinary.uploader.upload(file.tempFilePath, {
-              resource_type: 'image',
-              format: 'jpeg',
-          });
-          newImageUrl = result.url;
-      }
+        // // Check if a new image file is being uploaded
+        let newImageUrl = product.imageUrl;
+        if (req.files && req.files.photo) {
+            const file = req.files.photo;
+            const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                resource_type: 'image',
+                format: 'jpeg',
+            });
+            newImageUrl = result.url;
+        }
 
-      // Update the product fields
-      product.name = req.body.name || product.name;
-      product.imageUrl = newImageUrl;
-      product.fabric = req.body.fabric || product.fabric;
-      product.event = req.body.event || product.event;
-      product.category = req.body.category || product.category;
-      product.size = req.body.size || product.size;
-      product.bodyShape = req.body.bodyShape || product.bodyShape;
-      product.color = req.body.color || product.color;
-      product.clothMeasurement =
-          req.body.clothMeasurement || product.clothMeasurement;
-      product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
-      product.stockAvaliability =
-          req.body.stockAvaliability || product.stockAvaliability;
-      product.age = req.body.age || product.age;
-      product.price = req.body.price || product.price;
+        // Update the product fields
+        product.name = req.body.name || product.name;
+        product.imageUrl = newImageUrl;
+        product.fabric = req.body.fabric || product.fabric;
+        product.event = req.body.event || product.event;
+        product.category = req.body.category || product.category;
+        product.size = req.body.size || product.size;
+        product.bodyShape = req.body.bodyShape || product.bodyShape;
+        product.color = req.body.color || product.color;
+        product.clothMeasurement =
+            req.body.clothMeasurement || product.clothMeasurement;
+        product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
+        product.stockAvaliability =
+            req.body.stockAvaliability || product.stockAvaliability;
+        product.age = req.body.age || product.age;
+        product.price = req.body.price || product.price;
 
-      const updatedProduct = await product.save();
+        const updatedProduct = await product.save();
 
-      // Add the product to the category's products array
-      category.products.push(product._id);
-      await category.save();
+        // Add the product to the category's products array
+        category.products.push(product._id);
+        await category.save();
 
 
-      res.status(200).json({ success: true, data: updatedProduct });
-  } catch (error) {
-      res.status(500).json({ success: false, error: 'Server error' });
-  }
+        res.status(200).json({ success: true, data: updatedProduct });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 });
 
 
 //delete and Delete a clothing product with imgs
 //delete the product in a category
-router.delete('/category/:categoryId/product/:productId', verifyToken, isAdmin, async (req, res) => {
-
-  try {
-
-      // Get the category ID from the URL parameter
-      const {productId, categoryId} = req.params ;
-
-      // Find the category in the database
-      const category = await Category.findById(categoryId);
-      
-      if (!category || !product) {
-          return res.status(404).send({ error: 'Product or Category not found' });
-      }
-
-   // Find the product in the category's products array
-   const productIndex = category.products.findIndex((product) => product._id.toString() === productId);
-   const product = category.products[productIndex];
 
 
-      // Delete the image from Cloudinary
-      if (product.imageUrl) {
-          const publicId = product.imageUrl.split('/').slice(-1)[0].split('.')[0];
-          await cloudinary.uploader.destroy(publicId);
-      }
+router.delete('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin,  async (req, res) => {
 
-      // Remove the product from the category's products array
-      category.products.splice(productIndex, 1);
+    try {
 
-  // Save the updated category to the database
-  await category.save();
-      res.status(200).json({ success: true, data:  'Product removed from category successfully' });
+        // Get the category ID from the URL parameter
+        const { productId, categoryId } = req.params;
 
-  } catch (error) {
-      res.status(500).json(error);
-  }
-})
+        // Find the category in the database
+        const category = await Category.findById(categoryId);
 
+        if (!category) {
+            return res.status(404).send({ error: 'Category not found' });
+        }
+
+        // Find the product in the category's products array
+        const productIndex = category.products.findIndex((product) => product._id.toString() === productId);
+
+        if (productIndex === -1) {
+            return res.status(404).send({ error: 'Product not found' });
+        }
+        // Remove the product from the category's products array
+        category.products.splice(productIndex, 1);
+
+         // Find the product in the product database
+         const product = await Product.findById(productId);
+
+         if (!product) {
+            return res.status(404).send({ error: 'Product not found' });
+        }
+
+        // Delete the image from Cloudinary
+        if ( product.imageUrl) {
+            const publicId = product.imageUrl.split('/').slice(-1)[0].split('.')[0];
+            await cloudinary.uploader.destroy(publicId);
+        }
+
+         // Delete the product from the product database
+         await Product.findByIdAndDelete(productId);
+
+        // Save the updated category to the database
+        await category.save();
+        res.status(200).json({ success: true, data: 'Product removed from category successfully' });
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).json(error);
+    }
+});
 
 
 

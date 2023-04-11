@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../model/categoryModel')
 const PrimeCollection = require('../model/primeCollectionModel');
-const { verifyToken, isAdmin } = require('../middleware/token');
+const { verifyAdminToken, isAdmin } = require('../middleware/token');
 
 const cloudinary = require('cloudinary').v2;
 
@@ -16,7 +16,7 @@ cloudinary.config({
 
 
 //create primeCollection
-router.post('/category/:categoryId/primeCollection', verifyToken, isAdmin, async (req, res) => {
+router.post('/category/:categoryId/primeCollection',verifyAdminToken,isAdmin, async (req, res) => {
 
     // Get the category ID from the URL parameter
     const categoryId = req.params.categoryId;
@@ -123,7 +123,7 @@ router.get('/category/:categoryId/primeCollection/:primeCollectionId', async (re
 
 
 //update and  Update an existing clothing prime Collection  by ID
-router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyToken, isAdmin, async (req, res) => {
+router.put("/category/:categoryId/primeCollection/:primeCollectionId",verifyAdminToken,isAdmin, async (req, res) => {
     try {
 
         // Get the category ID from the URL parameter
@@ -134,7 +134,7 @@ router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyTok
         const primeCollection = await PrimeCollection.findById(primeCollectionId);
 
         if (!category || !primeCollection) {
-            return res.status(404).send({success:false, error: 'Prime Collection or tegory not found' });
+            return res.status(404).send({success:false, error: 'Prime Collection or Category not found' });
         }
 
         // Check if a new image file is being uploaded
@@ -179,42 +179,47 @@ router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyTok
 
 
 //delete and Delete a clothing prime Collection 
-router.delete("/category/:categoryId/primeCollection/:primeCollectionId", verifyToken, isAdmin, async (req, res) => {
+
+
+router.delete("/category/:categoryId/primeCollection/:primeCollectionId",verifyAdminToken,isAdmin, async (req, res) => {
     try {
+        const { categoryId, primeCollectionId } = req.params;
 
-        // Get the category ID from the URL parameter
-        const {categoryId, primeCollectionId} = req.params ;
-
-        // Find the category in the database
         const category = await Category.findById(categoryId);
-
-        if (!category || !primeCollection) {
-            return res.status(404).send({success:false, error: 'Prime Collection or Category not found' });
+        if (!category) {
+            return res.status(404).send({ success: false, error: 'Category not found' });
         }
 
-        // Find the product in the category's products array
-        const primeCollectionIndex = category.primeCollections.findIndex((primeCollection) => primeCollection._id.toString() === primeCollectionId);
-        const primeCollection = category.primeCollections[primeCollectionIndex];
+        const primeCollectionIndex = category.primeCollections.findIndex(primeCollection => primeCollection._id.toString() === primeCollectionId);
 
-
-        // Delete the image from Cloudinary
-        if (primeCollection.imageUrl) {
-            const publicId = primeCollection.imageUrl.split('/').slice(-1)[0].split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
+        if (primeCollectionIndex === -1) {
+            return res.status(404).send({ error: 'Prime Collection not found' });
         }
 
-        // Remove the product from the category's products array
         category.primeCollections.splice(primeCollectionIndex, 1);
 
-        // Save the updated category to the database
-        await category.save();
-        res.status(201).json({ success: true, data: "Prime Collection  Deleted ..." });
+        const primeCollection = await PrimeCollection.findById(primeCollectionId);
 
+        if (!primeCollection) {
+            return res.status(404).send({ error: 'Prime Collection not found' });
+        }
+
+            if (primeCollection.imageUrl) {
+                const publicId = primeCollection.imageUrl.split('/').slice(-1)[0].split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+
+            await PrimeCollection.findByIdAndDelete(primeCollectionId);
+
+            await category.save();
+
+            res.status(201).json({ success: true, data: "Prime Collection Deleted..." });
+        
     } catch (error) {
+        console.log(error);
         res.status(500).json({ success: false, error: 'Server error' });
-
     }
-})
+});
 
 
 module.exports = router;

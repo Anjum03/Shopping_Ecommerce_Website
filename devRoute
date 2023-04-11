@@ -1,0 +1,58 @@
+
+
+
+//ADMIN
+Admin Login:            http://localhost:4000/admin/login                  -->(POST)
+Admin LogOut:           http://localhost:4000/logout                       -->(POST)
+Admin DashBoard:        http://localhost:4000/admin/dashboard              -->(GET)
+
+
+//USER
+User Register:          http://localhost:4000/register                     -->(POST)
+User Login:             http://localhost:4000/login                        -->(POST)
+User Update:            http://localhost:4000/user/64101afbccc94b78850ca0cc 
+                         http://localhost:4000/user/:id                    -->(PUT)
+User Delete:            http://localhost:4000/user/640f1b8514e0bac7bd185fd3
+                         http://localhost:4000/user/:id                    -->(DELETE)
+
+//CATEGORY
+Category Create:        http://localhost:4000/category                     -->(POST)
+Category Update:        http://localhost:4000/category/:id                 -->(PUT)
+Category Delete:        http://localhost:4000/category/:id                 -->(DELETE)
+Category Get:           http://localhost:4000/category/:id                 -->(GET)
+
+
+//PRODUCT
+Product Create:         http://localhost:4000/category/641c256b98002ceae370200d/product
+                        http://localhost:4000/category/:category/product            -->(POST)
+
+Product Update:         http://localhost:4000/category/64196dfd7f8d7b4e30bf0f9f/product/641974bc51d824d930107c57
+                        http://localhost:4000/category/:category/product/:productId -->(PUT)
+
+Product Delete:         http://localhost:4000/category/:category/product/:productId -->(DELETE)
+Product Get:            http://localhost:4000/category/:category/product/           -->(GET)              ---(all Product)
+Product GetById:        http://localhost:4000/category/:category/product/:productId -->(GET)              ---(one Product)
+
+
+
+//PRIME COLLECTION 
+
+PrimeCollection Create:        http://localhost:4000/category/:categoryId/primeCollection                      -->(POST)
+PrimeCollection Update:        http://localhost:4000/category/:categoryId/primeCollection/:primeCollectionId   -->(PUT)
+PrimeCollection Delete:        http://localhost:4000/category/:categoryId/primeCollection/:primeCollectionId   -->(DELETE)
+PrimeCollection get:           http://localhost:4000/category/:categoryId/primeCollection/:primeCollectionId   -->(GET)     (one primeCollection product)
+PrimeCollection get:           http://localhost:4000/category/:categoryId/primeCollection                      -->(GET)     (all PrimeCollection product)
+
+
+
+//PURCHASE
+Purchase Create:         http://localhost:4000/purchase             -->(POST)
+Purchase Update:         http://localhost:4000/purchase/:id         -->(PUT)
+Purchase Delete:         http://localhost:4000/purchase/:id         -->(DELETE)
+Purchase GetByID:        http://localhost:4000/purchase/:id         -->(GET)
+
+
+
+//Help Article
+sendingEmail:           http://localhost:4000/email      -->(POST)
+sendingEmail:           http://localhost:4000/email      -->(GET)

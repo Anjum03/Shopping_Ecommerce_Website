@@ -1,6 +1,4 @@
 
-// models/category.js
-
 const mongoose = require('mongoose');
 
 const categorySchema = new mongoose.Schema({
@@ -11,8 +9,13 @@ const categorySchema = new mongoose.Schema({
   imageUrl: {
     type: String,
   },
-  products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  primeCollections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PrimeCollection' }],
+  products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' ,
+  populate: {
+    path: 'price'
+  }}],
+  primeCollections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PrimeCollection',  populate: {
+    path: 'price'
+  } }],
 },{timestamps: true});
 
 module.exports = mongoose.model('Category', categorySchema);

@@ -48,6 +48,9 @@ app.use('/', userRoute);
 const userQueryRoute = require("./routes/userEmailQurey");
 app.use('/', userQueryRoute);
 
+const cartRoute = require("./routes/cartRoute");
+app.use('/', cartRoute);
+
 
 app.listen(PORT, ()=>{
     console.log(`Server is Started.... :)`)
