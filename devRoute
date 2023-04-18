@@ -50,9 +50,18 @@ Purchase Create:         http://localhost:4000/purchase             -->(POST)
 Purchase Update:         http://localhost:4000/purchase/:id         -->(PUT)
 Purchase Delete:         http://localhost:4000/purchase/:id         -->(DELETE)
 Purchase GetByID:        http://localhost:4000/purchase/:id         -->(GET)
+Purchase GetByAll:        http://localhost:4000/purchase            -->(GET)
 
 
 
 //Help Article
 sendingEmail:           http://localhost:4000/email      -->(POST)
 sendingEmail:           http://localhost:4000/email      -->(GET)
+
+
+//BANNER
+Banner Create:         http://localhost:4000/banner             -->(POST)
+Banner Update:         http://localhost:4000/banner/:id         -->(PUT)
+Banner Delete:         http://localhost:4000/banner/:id         -->(DELETE)
+Banner GetByID:        http://localhost:4000/banner/:id         -->(GET)
+Banner GetByAll:        http://localhost:4000/banner            -->(GET)

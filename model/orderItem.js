@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const orderItemSchema = new mongoose.Schema({
     quantity: {  type: Number, default:0 },
 
-  category: { type: mongoose.Schema.Types.ObjectId,ref: 'Category',required: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
 
 },
 {

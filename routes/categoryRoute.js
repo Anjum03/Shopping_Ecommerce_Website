@@ -26,6 +26,18 @@ router.get("/category",  async (req, res) => {
 });
 
 
+
+//get stats {total of product in numbers}
+router.get("/category/stats",  async (req, res) => {
+  try {
+    const count = await Category.countDocuments({});
+    res.status(200).json({ success: true, message: "Total Categories Here ..", count });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+
 //filter for any pproducts or primeCollections
 router.get("/category", async (req, res) => {
 
@@ -51,22 +63,9 @@ router.get("/category/:id",  async (req, res) => {
     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
-
-
-//get stats {total of product in numbers}
-// router.get("/category/stats",  async (req, res) => {
-//   try {
-//     const count = await Category.countDocuments({});
-//     res.status(200).json({ success: true, message: "Total Categories Here ..", count });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, error: "Server error" });
-//   }
-// });
 
 
 

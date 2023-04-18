@@ -51,6 +51,8 @@ app.use('/', userQueryRoute);
 const cartRoute = require("./routes/cartRoute");
 app.use('/', cartRoute);
 
+const bannerRoute = require("./routes/bannerRoute");
+app.use('/', bannerRoute);
 
 app.listen(PORT, ()=>{
     console.log(`Server is Started.... :)`)

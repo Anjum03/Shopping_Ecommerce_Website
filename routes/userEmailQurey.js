@@ -16,7 +16,6 @@ const { verifyAdminToken, isAdmin } = require('../middleware/token');
 
 // Receive Email for Query
 router.post('/email', async (req, res) => {
-  console.log(req.body);
   const user_id = req.body.user_id;
   const product_id = req.body.product_id;
   const category_id = req.body.category_id;
@@ -31,7 +30,6 @@ router.post('/email', async (req, res) => {
 
   // Check if all required fields are provided
   if (!user_id || !product_id || !category_id || !Name || !Email || !whatsapp || !size || !stockAvailability || !status) {
-    console.log()
     return res.status(400).json({ message: 'Please provide all required fields' });
   }
 
@@ -57,7 +55,6 @@ router.post('/email', async (req, res) => {
       res.status(200).json({ success: true, data: query, message: `Sent !!!` });
     })
     .catch((error) => {
-      console.log(error);
       res.status(500).json({ success: false, data: error });
     });
 
@@ -120,10 +117,8 @@ router.post('/email', async (req, res) => {
     (error, info) => {
       if (error) {
         res.status(500).send('Email could not be sent');
-        console.log(error);
       } else {
         res.status(200).send("Email sent Successfully");
-        console.log('Email sent: ' + info.response);
 
       }
     });

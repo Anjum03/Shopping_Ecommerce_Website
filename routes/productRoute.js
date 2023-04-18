@@ -67,46 +67,8 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
 
 
 
-//get by ID and whatsapp chat for product view/details pages
-// npm i twilio
-// router.get('/product/:id', async(req,res)=>{
-
-//   try{
-//     const product = await product.findById(req.params.id);
-//     if (!product) {
-//       return res.status(404).json({ success: false, error: 'product not found' });
-//     }
-
-//     //  // Send message to WhatsApp
-//     //  const productLink = `https://example.com/products/${product.productId}`;
-//     //  const message = `Check out this ${product.name} product: ${productLink}`;
-//     //  const phone = '1234567890';
-//     //  const waLink = `https://api.whatsapp.com/send?phone=${phone}&text=${message}`;
-
-//      // Render product view with WhatsApp link
-//     //  res.render('product', { product, waLink });
-
-
-//     const client = require('twilio')('<your_account_sid>', '<your_auth_token>');
-//     const message = await client.messages.create({
-//         body: 'New products available!',
-//         from: 'whatsapp:<your_twilio_number>',
-//         to: 'whatsapp:<your_personal_number>'
-//     });
-//     console.log(message, product)
-//     res.status(200).json({ success: true, data: product });
-
-//   }catch(err){
-//     console.log(err);
-//     return res.status(500).json({success:false, err: `Server Error`})
-//   }
-// })
-
-
 // Add a new product to a category
-
-router.post("/category/:categoryId/product",verifyAdminToken,isAdmin,  async (req, res) => {
-
+router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (req, res) => {
     // Get the category ID from the URL parameter
     const categoryId = req.params.categoryId;
     // Find the category in the database
@@ -116,56 +78,90 @@ router.post("/category/:categoryId/product",verifyAdminToken,isAdmin,  async (re
         return res.status(404).send({ error: 'Category not found' });
     }
 
-    const file = req.files.photo;
-    cloudinary.uploader.upload(
-        file.tempFilePath,
-        {
-            resource_type: "image",
-            format: "jpeg",
-        },
-        async (err, result) => {
-            if (err) {
-                res.status(500).json({ success: false, error: "Server error" });
-                return;
-            }
+    const files = req.files;
 
-            const product = new Product({
-                name: req.body.name,
-                imageUrl: result.url,
-                fabric: req.body.fabric,
-                event: req.body.event,
-                categories: req.body.categories,
-                size: req.body.size,
-                bodyShape: req.body.bodyShape,
-                color: req.body.color,
-                clothMeasurement: req.body.clothMeasurement,
-                returnPolicy: req.body.returnPolicy,
-                stockAvaliability: req.body.stockAvaliability,
-                age: req.body.age,
-                price: req.body.price,
+    let uploadPromises;
+
+    if (Array.isArray(files.photos)) {
+        uploadPromises = files.photos.map((file) => {
+            return new Promise((resolve, reject) => {
+                cloudinary.uploader.upload(
+                    file.tempFilePath,
+                    {
+                        resource_type: "image",
+                        format: file.mimetype.split('/')[1],
+                    },
+                    (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.url);
+                        }
+                    }
+                )
             });
-
-            try {
-                // Save the product to the database
-                const newProduct = await product.save();
-
-                // Add the product to the category's products array
-                category.products.push(product._id);
-                await category.save();
-
-                // Send the new product object as the response
-                res.status(201).json({ success: true, data: newProduct });
-            } catch (error) {
-
-                res.status(500).json({ success: false, error: "Server error" });
-            }
         });
+    } else {
+        uploadPromises = [
+            new Promise((resolve, reject) => {
+                cloudinary.uploader.upload(
+                    files.photos.tempFilePath,
+                    {
+                        resource_type: "image",
+                        format: files.photos.mimetype.split('/')[1],
+                    },
+                    (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.url);
+                        }
+                    }
+                )
+            })
+        ];
+    }
+
+
+    try {
+        const imageUrls = await Promise.all(uploadPromises);
+
+        const product = new Product({
+            name: req.body.name,
+            description: req.body.description,
+            imageUrl: imageUrls,
+            fabric: req.body.fabric,
+            event: req.body.event,
+            category: req.body.category,
+            size: req.body.size,
+            bodyShape: req.body.bodyShape,
+            color: req.body.color,
+            clothMeasurement: req.body.clothMeasurement,
+            returnPolicy: req.body.returnPolicy,
+            stockAvaliability: req.body.stockAvaliability,
+            age: req.body.age,
+            discount: req.body.discount,
+            price: req.body.price,
+        });
+
+        // Save the product to the database
+        const newProduct = await product.save();
+
+        // Add the product to the category's products array
+        category.products.push(product._id);
+        await category.save();
+
+        // Send the new product object as the response
+        res.status(201).json({ success: true, data: newProduct });
+    } catch (error) {
+        res.status(500).json({ success: false, error: "Server error" });
+    }
 });
 
 
+
 //update and  Update an existing clothing product y ID
-//upadte the product in a category
-router.put('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin, async (req, res) => {
+router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
 
     try {
 
@@ -180,20 +176,57 @@ router.put('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin, 
             return res.status(404).send({ error: 'Product or Category not found' });
         }
 
-        // // Check if a new image file is being uploaded
-        let newImageUrl = product.imageUrl;
-        if (req.files && req.files.photo) {
-            const file = req.files.photo;
-            const result = await cloudinary.uploader.upload(file.tempFilePath, {
+       // Check if new image files are being uploaded
+    let newImageUrls = product.imageUrl;
+    if (req.files && req.files.photos) {
+      const files = req.files.photos;
+      let uploadPromises;
+      if (Array.isArray(files)) {
+        uploadPromises = files.map((file) => {
+          return new Promise((resolve, reject) => {
+            cloudinary.uploader.upload(
+              file.tempFilePath,
+              {
                 resource_type: 'image',
-                format: 'jpeg',
-            });
-            newImageUrl = result.url;
-        }
+                format: file.mimetype.split('/')[1],
+              },
+              (err, result) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(result.url);
+                }
+              }
+            );
+          });
+        });
+      } else {
+        uploadPromises = [
+          new Promise((resolve, reject) => {
+            cloudinary.uploader.upload(
+              files.tempFilePath,
+              {
+                resource_type: 'image',
+                format: files.mimetype.split('/')[1],
+              },
+              (err, result) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(result.url);
+                }
+              }
+            );
+          }),
+        ];
+      }
+      newImageUrls = await Promise.all(uploadPromises);
+    }
 
         // Update the product fields
         product.name = req.body.name || product.name;
-        product.imageUrl = newImageUrl;
+        product.description = req.body.description || product.description;
+        product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;
         product.event = req.body.event || product.event;
         product.category = req.body.category || product.category;
@@ -206,14 +239,15 @@ router.put('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin, 
         product.stockAvaliability =
             req.body.stockAvaliability || product.stockAvaliability;
         product.age = req.body.age || product.age;
+        product.discount = req.body.discount || product.discount;
         product.price = req.body.price || product.price;
 
         const updatedProduct = await product.save();
 
-        // Add the product to the category's products array
-        category.products.push(product._id);
+        // Update the product in the category's products array
+        const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
+        category.products[productIndex] = updatedProduct._id;
         await category.save();
-
 
         res.status(200).json({ success: true, data: updatedProduct });
     } catch (error) {
@@ -223,10 +257,8 @@ router.put('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin, 
 
 
 //delete and Delete a clothing product with imgs
-//delete the product in a category
 
-
-router.delete('/category/:categoryId/product/:productId',verifyAdminToken,isAdmin,  async (req, res) => {
+router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
 
     try {
 
@@ -249,35 +281,30 @@ router.delete('/category/:categoryId/product/:productId',verifyAdminToken,isAdmi
         // Remove the product from the category's products array
         category.products.splice(productIndex, 1);
 
-         // Find the product in the product database
-         const product = await Product.findById(productId);
+        // Find the product in the product database
+        const product = await Product.findById(productId);
 
-         if (!product) {
+        if (!product) {
             return res.status(404).send({ error: 'Product not found' });
         }
 
-        // Delete the image from Cloudinary
-        if ( product.imageUrl) {
-            const publicId = product.imageUrl.split('/').slice(-1)[0].split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
+         // Delete the images from Cloudinary
+    if (product.imageUrl && product.imageUrl.length > 0) {
+        for (let i = 0; i < product.imageUrl.length; i++) {
+          const publicId = product.imageUrl[i].split('/').slice(-1)[0].split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
         }
-
-         // Delete the product from the product database
-         await Product.findByIdAndDelete(productId);
+      }
+        // Delete the product from the product database
+        await Product.findByIdAndDelete(productId);
 
         // Save the updated category to the database
         await category.save();
         res.status(200).json({ success: true, data: 'Product removed from category successfully' });
 
     } catch (error) {
-        console.log(error)
         res.status(500).json(error);
     }
 });
-
-
-
-
-
 
 module.exports = router;
