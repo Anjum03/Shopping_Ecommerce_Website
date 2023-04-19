@@ -133,6 +133,7 @@ router.put("/category/:id", verifyAdminToken, isAdmin,async (req, res) => {
       }
     );
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });

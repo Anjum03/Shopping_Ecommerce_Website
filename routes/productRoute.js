@@ -126,6 +126,14 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
     try {
         const imageUrls = await Promise.all(uploadPromises);
 
+        const discountPercentage = parseInt(req.body.discount); // Assuming discount is a percentage string like "25%"
+
+        if (isNaN(discountPercentage)) {
+            return res.status(400).send({ error: 'Invalid discount value' });
+        }
+
+        const discountFactor = 1 - (discountPercentage / 100);
+
         const product = new Product({
             name: req.body.name,
             description: req.body.description,
@@ -141,7 +149,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             stockAvaliability: req.body.stockAvaliability,
             age: req.body.age,
             discount: req.body.discount,
-            price: req.body.price,
+            price: req.body.price * discountFactor,  
         });
 
         // Save the product to the database
@@ -154,6 +162,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         // Send the new product object as the response
         res.status(201).json({ success: true, data: newProduct });
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
@@ -176,52 +185,52 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             return res.status(404).send({ error: 'Product or Category not found' });
         }
 
-       // Check if new image files are being uploaded
-    let newImageUrls = product.imageUrl;
-    if (req.files && req.files.photos) {
-      const files = req.files.photos;
-      let uploadPromises;
-      if (Array.isArray(files)) {
-        uploadPromises = files.map((file) => {
-          return new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(
-              file.tempFilePath,
-              {
-                resource_type: 'image',
-                format: file.mimetype.split('/')[1],
-              },
-              (err, result) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(result.url);
-                }
-              }
-            );
-          });
-        });
-      } else {
-        uploadPromises = [
-          new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(
-              files.tempFilePath,
-              {
-                resource_type: 'image',
-                format: files.mimetype.split('/')[1],
-              },
-              (err, result) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(result.url);
-                }
-              }
-            );
-          }),
-        ];
-      }
-      newImageUrls = await Promise.all(uploadPromises);
-    }
+        // Check if new image files are being uploaded
+        let newImageUrls = product.imageUrl;
+        if (req.files && req.files.photos) {
+            const files = req.files.photos;
+            let uploadPromises;
+            if (Array.isArray(files)) {
+                uploadPromises = files.map((file) => {
+                    return new Promise((resolve, reject) => {
+                        cloudinary.uploader.upload(
+                            file.tempFilePath,
+                            {
+                                resource_type: 'image',
+                                format: file.mimetype.split('/')[1],
+                            },
+                            (err, result) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(result.url);
+                                }
+                            }
+                        );
+                    });
+                });
+            } else {
+                uploadPromises = [
+                    new Promise((resolve, reject) => {
+                        cloudinary.uploader.upload(
+                            files.tempFilePath,
+                            {
+                                resource_type: 'image',
+                                format: files.mimetype.split('/')[1],
+                            },
+                            (err, result) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(result.url);
+                                }
+                            }
+                        );
+                    }),
+                ];
+            }
+            newImageUrls = await Promise.all(uploadPromises);
+        }
 
         // Update the product fields
         product.name = req.body.name || product.name;
@@ -239,9 +248,14 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.stockAvaliability =
             req.body.stockAvaliability || product.stockAvaliability;
         product.age = req.body.age || product.age;
-        product.discount = req.body.discount || product.discount;
-        product.price = req.body.price || product.price;
-
+        
+        // Update the discount and price fields if the discount value has changed
+        const newDiscountPercentage = parseInt(req.body.discount);
+        if (!isNaN(newDiscountPercentage) && newDiscountPercentage !== product.discount) {
+            const newDiscountFactor = 1 - (newDiscountPercentage / 100);
+            product.discount = newDiscountPercentage;
+            product.price = product.price * newDiscountFactor;
+        }
         const updatedProduct = await product.save();
 
         // Update the product in the category's products array
@@ -251,6 +265,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 
         res.status(200).json({ success: true, data: updatedProduct });
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -288,13 +303,13 @@ router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAd
             return res.status(404).send({ error: 'Product not found' });
         }
 
-         // Delete the images from Cloudinary
-    if (product.imageUrl && product.imageUrl.length > 0) {
-        for (let i = 0; i < product.imageUrl.length; i++) {
-          const publicId = product.imageUrl[i].split('/').slice(-1)[0].split('.')[0];
-          await cloudinary.uploader.destroy(publicId);
+        // Delete the images from Cloudinary
+        if (product.imageUrl && product.imageUrl.length > 0) {
+            for (let i = 0; i < product.imageUrl.length; i++) {
+                const publicId = product.imageUrl[i].split('/').slice(-1)[0].split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
         }
-      }
         // Delete the product from the product database
         await Product.findByIdAndDelete(productId);
 

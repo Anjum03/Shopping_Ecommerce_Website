@@ -27,52 +27,63 @@ router.post('/category/:categoryId/primeCollection', verifyAdminToken, isAdmin, 
     if (!category) {
         return res.status(404).send({ success: false, error: 'Category not found' });
     }
+    const files = req.files;
 
-    let imageUrls = [];
+    let uploadPromises;
 
-    // Check if there is a single file or multiple files
-    if (req.files && req.files.photos) {
-        if (req.files.photos.length) {
-            // Multiple files
-            const files = req.files.photos;
-            const uploadPromises = files.map((file) => {
-                return new Promise((resolve, reject) => {
-                    cloudinary.uploader.upload(
-                        file.tempFilePath,
-                        {
-                            resource_type: "image",
-                            format: file.mimetype.split('/')[1],
-                        },
-                        (err, result) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve(result.url);
-                            }
+    if (Array.isArray(files.photos)) {
+        uploadPromises = files.photos.map((file) => {
+            return new Promise((resolve, reject) => {
+                cloudinary.uploader.upload(
+                    file.tempFilePath,
+                    {
+                        resource_type: "image",
+                        format: file.mimetype.split('/')[1],
+                    },
+                    (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.url);
                         }
-                    )
-                });
+                    }
+                )
             });
-            try {
-                imageUrls = await Promise.all(uploadPromises);
-            } catch (error) {
-                return res.status(500).json({ success: false, error: 'Failed to upload images' });
-            }
-        } else {
-            // Single file
-            const file = req.files.photos;
-            try {
-                const result = await cloudinary.uploader.upload(file.tempFilePath, { resource_type: "image", format: "jpeg" });
-                imageUrls.push(result.url);
-            } catch (error) {
-                return res.status(500).json({ success: false, error: 'Failed to upload image' });
-            }
-        }
+        });
     } else {
-        return res.status(400).send({ success: false, error: 'Missing required parameter - file' });
+        uploadPromises = [
+            new Promise((resolve, reject) => {
+                cloudinary.uploader.upload(
+                    files.photos.tempFilePath,
+                    {
+                        resource_type: "image",
+                        format: files.photos.mimetype.split('/')[1],
+                    },
+                    (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.url);
+                        }
+                    }
+                )
+            })
+        ];
     }
 
+    
+
     try {
+        const imageUrls = await Promise.all(uploadPromises);
+        
+        const discountPercentage = parseInt(req.body.discount); // Assuming discount is a percentage string like "25%"
+
+        if (isNaN(discountPercentage)) {
+            return res.status(400).send({ error: 'Invalid discount value' });
+        }
+
+        const discountFactor = 1 - (discountPercentage / 100);
+
         const primeCollection = new PrimeCollection({
             name: req.body.name,
             description: req.body.description,
@@ -88,7 +99,7 @@ router.post('/category/:categoryId/primeCollection', verifyAdminToken, isAdmin, 
             stockAvaliability: req.body.stockAvaliability,
             age: req.body.age,
             discount: req.body.discount,
-            price: req.body.price
+            price: req.body.price * discountFactor, 
         });
         // Save the product to the database
         const newPrimeCollection = await primeCollection.save();
@@ -104,10 +115,6 @@ router.post('/category/:categoryId/primeCollection', verifyAdminToken, isAdmin, 
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
-
-
-
-
 
 
 
@@ -238,13 +245,17 @@ router.put("/category/:categoryId/primeCollection/:primeCollectionId", verifyAdm
         primeCollection.returnPolicy = req.body.returnPolicy || primeCollection.returnPolicy;
         primeCollection.stockAvaliability = req.body.stockAvaliability || primeCollection.stockAvaliability;
         primeCollection.age = req.body.age || primeCollection.age;
-        primeCollection.discount = req.body.discount || primeCollection.discount;
-        primeCollection.price = req.body.price || primeCollection.price
-
+       // Update the discount and price fields if the discount value has changed
+       const newDiscountPercentage = parseInt(req.body.discount);
+       if (!isNaN(newDiscountPercentage) && newDiscountPercentage !== primeCollection.discount) {
+           const newDiscountFactor = 1 - (newDiscountPercentage / 100);
+           primeCollection.discount = newDiscountPercentage;
+           primeCollection.price = primeCollection.price * newDiscountFactor;
+       }
 
         const upadtedPrimeCollection = await primeCollection.save();
 
-        // Add the product to the category's products array
+        // Add the primeCollection to the category's primeCollections array
         category.primeCollections.push(primeCollection._id);
         await category.save();
 

@@ -5,216 +5,116 @@ const express = require('express');
 const router = express.Router();
 const Cart = require("../model/cartModel");
 const OrderItem = require('../model/orderItem');
+const Purchase = require("../model/purchaseModel")
 const { verifyUserToken } = require('../middleware/token');
-const mongoose = require('mongoose');
 
 //Create Cart
 router.post('/cart', verifyUserToken, async (req, res) => {
 
+  const { productId, name, description, price, quantity } = req.body;
+
   try {
 
-    const { itemIds, quantities, userId } = req.body;
-
-    // find the user's cart
-    let cart = await Cart.findOne({ user: userId }).populate({
-      path: 'orderItems.item',
-      populate: {
-        path: 'category',
-        populate: {
-          path: 'products',
-          populate: {
-            path: 'price'
-          }
-        },
-        options: { strictPopulate: false } // Add this line
-      }
+    // ----odereItem Logic Start ---
+    //create new orderitem 
+    const orderItem = new OrderItem({
+      productId, name, description, price, quantity 
     });
+    
+    await orderItem.save();
 
-    console.log('cart:', cart);
+    //--------User logic ---------- 
+    // find the cart for the current user
+    const  cart = await Cart.findOne({ userId: req.user._id })
 
-    if (!cart ) {
-      // if the user doesn't have a cart, create a new one
-      cart = new Cart({ user: userId, orderItems: [] });
-    }
-
-    console.log('cart.orderItems:', cart.orderItems);
-
-    if (!cart.orderItems) {
-      // if the cart does not have orderItems, initialize it to an empty array
-      cart.orderItems = [];
-    }
-
-    if (!itemIds || itemIds.length === 0) {
-      return res.status(400).json({ success: false, message: 'No items provided' });
-    }
-
-    // loop through the array of itemIds to add items to the cart
-    for (let i = 0; i < itemIds.length; i++) {
-      const itemId = itemIds[i];
-      const quantity = quantities[i];
-
-      // check if itemId is a valid ObjectId
-  if (!mongoose.Types.ObjectId.isValid(itemId)) {
-    return res.status(400).json({ success: false, message: 'Invalid item id' });
-  }
-
-
-      // // find the order item for the given item id 
-      let orderItem = await OrderItem.findById(itemId).populate({
-        path: 'category',
-        populate: {
-          path: 'products',
-          populate: {
-            path: 'price'
-          }
-        },
-        options: { strictPopulate: false }
+    if(!cart){
+      //Create a new cart if user doesn't have one
+      const newCart = new Cart({
+        userId: req.user._id,
+        orderItems:[orderItem]
       });
-
-      // Check if the order item or its category or products are not found
-      if (!orderItem || !orderItem.category || !orderItem.category.products || !orderItem.category.products.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: `Item not found`
-        });
-      }
-
-      let existingOrderItem = cart.orderItems.find(item => item.item && item.item.toString() === itemId);
-
-      if (existingOrderItem) {
-        // if the item exists, update its quantity in the database
-        const newQuantity = existingOrderItem.quantity + quantity;
-        await OrderItem.findOneAndUpdate(
-          { _id: orderItemToUpdate.item },
-          { $set: { quantity: newQuantity } },
-          { new: true }
-        );
-
-       // update the quantity of the order item in the cart
-orderItemToUpdate.quantity = newQuantity;
-
-        // recalculate the total price of the cart
-cart.totalPrice = cart.orderItems.reduce((total, item) => {
-  return total + item.quantity * item.item.price;
-}, 0);
-      } else {
-        // if the item does not exist, create a new order item and add it to the cart
-        const newOrderItem = new OrderItem({
-          quantity: quantity,
-          category: orderItem.category
-        });
-
-        await newOrderItem.save();
-        cart.orderItems.push({ item: newOrderItem._id, quantity: quantity });
-        cart.totalPrice += quantity * orderItem.category.products[0].price;
-      }
+      await newCart.save();
+    } else {
+      //Add order item to user's existing cart
+      cart.orderItems.push(orderItem);
+      await cart.save();
     }
+    // Output all details of orderitem and userid in the response
+    const userId = req.user._id;
+    const orderItemId = orderItem._id;
 
-    // 
-    // const newOrderItem = new OrderItem({
-    //   quantity: req.body.quantity,
-    //   category: req.body.category // replace with the actual category ID or object
-    // });
-
-    // // find the user's cart
-    // // const userId = req.user.id; // assuming the user ID is stored in req.user
-    // let cart = await Cart.findOne({ user: userId });
-
-    // if (!cart) {
-    //   // if the user doesn't have a cart, create a new one
-    //   cart = new Cart({ user: userId });
-    // }
-
-    //check exisitng item in db ?
-    // const existingOrderItem = cart.orderItems.find(item => item.item.toString() === itemId);
-    // if (existingOrderItem) {
-    //   //if the item exists, update its quantiy
-    //   existingOrderItem.quantity += quantity;
-    //   cart.totalPrice += quantity * orderItem.category.products[0].price;
-    // } else {
-    //   //if the item not exists , add it to the cart,create a new order item and add it to the cart
-
-    //   const newOrderItem = new OrderItem({
-    //     quantity: quantity,
-    //     category: orderItem.category
-    //   });
-    //   await newOrderItem.save();
-    //   cart.orderItems.push({ item: newOrderItem._id, quantity: orderItem.quantity });
-    //   cart.totalPrice += quantity * orderItem.category.products[0].price;
-    // }
-
-    // save the changes to the cart
-    await cart.save();
-    res.status(201).json({ success: true, message: 'Item added to cart successfully', data: { cart } })
-
-  } catch (error) {
-    console.log(error);
+    res.status(201).json({ success: true, message: 'Item added to cart', data: {  userId: userId, 
+        orderItemId: orderItemId, 
+        cart: cart  } });
+  
+  }  catch (error) {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
-
-});
+})
 
 
 
 //update Cart
-router.put('/cart/:id', verifyUserToken, async (req, res) => {
+router.put('/cart/:itemId', verifyUserToken, async (req, res) => {
+  const { itemId } = req.params;
+  const { quantity } = req.body;
 
   try {
 
-    const cartId = req.params.id;
-    const userId = req.user._id;
+    //check if the user has access to the cart ==--- current user
+    const cart = await Cart.findOne({ userId: req.user._id });
 
-    //check if the user has access to the cart
-    const cart = await Cart.findOne({ _id: cartId, user: userId });
     if (!cart) {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
 
-    //update the cart
+   // Find the item in the cart and update the quantity
+    const itemIndex = cart.orderItems.findIndex((item) => item.item._id === itemId);
+    if (itemIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Item not found in cart' });
+    }
 
-    cart.orderItem = req.body.orderItem;
-    cart.totalPrice = req.body.totalPrice;
+    cart.orderItems[itemIndex].quantity = quantity;
 
     //Save the updated cart to the database
-    const updatedCart = await cart.save();
+    await cart.save();
 
-    console.log(updatedCart);
-    res.status(200).json({ success: true, message: 'Cart Updated SuccessFully', data: updatedCart });
+    console.log(cart);
+    res.status(200).json({ success: true, message: 'Cart Updated SuccessFully', data: { cart } });
 
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
-
   }
 
 });
 
 
 
-
 //delete Cart
-router.delete('/cart/:id', verifyUserToken, async (req, res) => {
+router.delete('/cart/:itemId', verifyUserToken, async (req, res) => {
+
+  const { itemId } = req.params;
 
   try {
 
-    const cartId = req.params.id;
-    const userId = req.user._id;
+    // Find the cart for the current user
+    const cart = await Cart.findOne({ userId: req.user._id });
 
-    //check if the user has access to the cart
-    const cart = await Cart.findOne({ _id: cartId, user: userId });
     if (!cart) {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
 
-    //Delete the orderItem
-    const orderItemIds = cart.orderItem.map(item => item.item);
-    await OrderItem.deleteMany({ _id: { $in: orderItemIds } });
+    // Find the item in the cart and remove it
+    const itemIndex = cart.orderItems.findIndex((item) => item.item._id === itemId);
+    if (itemIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Item not found in cart' });
+    }
 
-    //Delete the cart 
+    cart.orderItems.splice(itemIndex, 1);
+    await cart.save();
 
-    const deletedCart = await cart.deleteOne({ _id: cartId });
-
-    res.status(200).json({ success: true, message: 'Delete Cart', data: deletedCart });
+    res.status(200).json({ success: true, message: 'Delete Cart', data: cart });
 
   } catch (error) {
     console.log(error)

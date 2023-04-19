@@ -6,7 +6,7 @@ const router = express.Router();
 const Purchase = require("../model/purchaseModel");
 const OrderItem = require('../model/orderItem');
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
-
+const Cart = require("../model/cartModel");
 
 
 
@@ -32,68 +32,49 @@ router.get('/purchase', verifyAdminToken, isAdmin, async (req, res) => {
 
 
 
-
 //create purchase order record
-router.post('/purchase', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
+router.post('/purchase',  verifyUserToken, async (req, res) => {
 
+  const { paymentMethod, shippingAddress } = req.body;
   try {
+    
+    // Find the user's cart
+    const cart = await Cart.findOne({ userId: req.user._id })
 
-    const orderItems = req.body.orderItem;
-    const orderItemIds = [];
-    const totalPrices = [];
-
-    // Create and save new OrderItems to database
-    for (let i = 0; i < orderItems.length; i++) {
-      let newOrderItem = new OrderItem({
-        quantity: orderItems[i].quantity,
-        category: orderItems[i].category
-      });
-
-      newOrderItem = await newOrderItem.save();
-      orderItemIds.push(newOrderItem._id);
-
-      const orderItem = await OrderItem.findById(newOrderItem._id)
-        .populate({
-          path: 'category',
-          populate: {
-            path: 'products',
-            populate: {
-              path: 'price'
-            }
-          }
-        });
-
-      if (!orderItem || !orderItem.category || !orderItem.category.products || orderItem.category.products.length === 0) {
-        continue;
-      }
-
-      const price = orderItem.category.products[0].price;
-      const quantity = newOrderItem.quantity;
-      const totalPrice = price * quantity;
-      totalPrices.push(totalPrice);
+    if (!cart) {
+      res.status(404).send('Cart not found');
+      return;
     }
+    
+    console.log('Cart:', cart);
 
-    const totalPrice = totalPrices.reduce((a, b) => a + b, 0);
-
-    // Create a new purchase record
+    // Create and save a new purchase order record
+    const totalPrice = cart.orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
     const purchase = new Purchase({
-      orderItem: orderItemIds,
-      Address: req.body.Address,
-      phone: req.body.phone,
-      totalPrice: totalPrice,
-      user: req.body.user,
-      dateOrder: req.body.dateOrder
+      userId: req.user._id,
+      orderItems: cart.orderItems,
+      totalPrice,
+      paymentMethod,
+      shippingAddress
     });
-
-    // Save new purchase record to database
     await purchase.save();
 
-    // Send response with new purchase record
-    res.status(201).json({ success: true, message: 'Purchase record created successfully', data: purchase });
+    console.log('Purchase order:', purchase);
+
+    // Update cart to remove purchased items
+    const purchasedItems = purchase.orderItems.map(item => item._id);
+    cart.orderItems = cart.orderItems.filter(item => !purchasedItems.includes(item._id));
+    await cart.save();
+
+    console.log('Cart after saving remove purchase Item :', cart);
+
+    res.status(201).json({ success: true, message: 'Purchase order created', data: { purchaseOrder } });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
+
 
 
 
