@@ -18,8 +18,8 @@ const primeCollectionSchema = new mongoose.Schema({
   },
   returnPolicy:{ type: Number },
   stockAvaliability:{ type: Number },
-  age:{ type: String, enum: ['15-20', '20-30', '30-40', '40-5', '50-60', '60-70','70-80', '80-90', '90-100'] },
-  discount:{ type: Number },
+  age:{ type: String, enum: ['15-20', '20-25', '25-30', '37-45', ] },
+  discount:{ type: String },
   price:{ type: Number },
   });
 
