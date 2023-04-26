@@ -13,7 +13,6 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-//Define route for managing clothing products.
 
 
 // Get all products in a category with paginaton
@@ -122,45 +121,44 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         ];
     }
 
-
     try {
         const imageUrls = await Promise.all(uploadPromises);
 
-        const discountPercentage = parseInt(req.body.discount); // Assuming discount is a percentage string like "25%"
+const discountPercentage = parseInt(req.body.discount.replace("%", ""));
+const price = parseFloat(req.body.price);
+const discountAmount = price * (discountPercentage / 100);
+const discountedPrice = price - discountAmount;
+const totalPrice = Math.round(discountedPrice);
 
-        if (isNaN(discountPercentage)) {
-            return res.status(400).send({ error: 'Invalid discount value' });
-        }
+const product = new Product({
+  name: req.body.name,
+  description: req.body.description,
+  imageUrl: imageUrls,
+  fabric: req.body.fabric,
+  event: req.body.event,
+  category: req.body.category,
+  size: req.body.size,
+  bodyShape: req.body.bodyShape,
+  color: req.body.color,
+  clothMeasurement: req.body.clothMeasurement,
+  returnPolicy: req.body.returnPolicy,
+  stockAvaliability: req.body.stockAvaliability,
+  age: req.body.age,
+  discount: discountPercentage,
+  price: price,
+  totalPrice: totalPrice
+});
 
-        const discountFactor = 1 - (discountPercentage / 100);
+// Save the product to the database
+const newProduct = await product.save();
 
-        const product = new Product({
-            name: req.body.name,
-            description: req.body.description,
-            imageUrl: imageUrls,
-            fabric: req.body.fabric,
-            event: req.body.event,
-            category: req.body.category,
-            size: req.body.size,
-            bodyShape: req.body.bodyShape,
-            color: req.body.color,
-            clothMeasurement: req.body.clothMeasurement,
-            returnPolicy: req.body.returnPolicy,
-            stockAvaliability: req.body.stockAvaliability,
-            age: req.body.age,
-            discount: req.body.discount,
-            price: req.body.price * discountFactor,  
-        });
+// Add the product to the category's products array
+category.products.push(product._id);
+await category.save();
 
-        // Save the product to the database
-        const newProduct = await product.save();
+// Send the new product object as the response
+res.status(201).json({ success: true, data: newProduct });
 
-        // Add the product to the category's products array
-        category.products.push(product._id);
-        await category.save();
-
-        // Send the new product object as the response
-        res.status(201).json({ success: true, data: newProduct });
     } catch (error) {
         console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
@@ -248,7 +246,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.stockAvaliability =
             req.body.stockAvaliability || product.stockAvaliability;
         product.age = req.body.age || product.age;
-        
+
         // Update the discount and price fields if the discount value has changed
         const newDiscountPercentage = parseInt(req.body.discount);
         if (!isNaN(newDiscountPercentage) && newDiscountPercentage !== product.discount) {
@@ -271,8 +269,8 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 });
 
 
-//delete and Delete a clothing product with imgs
 
+//delete and Delete a clothing product with imgs
 router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
 
     try {

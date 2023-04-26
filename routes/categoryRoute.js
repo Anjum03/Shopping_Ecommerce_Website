@@ -103,7 +103,7 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
 
 
 //update category
-router.put("/category/:id", verifyAdminToken, isAdmin,async (req, res) => {
+router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
   try {
     const categoryId = req.params.id;
     const category = await Category.findById(categoryId);
@@ -112,31 +112,42 @@ router.put("/category/:id", verifyAdminToken, isAdmin,async (req, res) => {
       return res.status(404).json({ success: false, error: "Category not found" });
     }
 
-    const file = req.files.photo;
-    cloudinary.uploader.upload(
-      file.tempFilePath,
-      {
-        resource_type: "image",
-        format: "jpeg",
-      },
-      async (err, result) => {
-        if (err) {
-          res.status(500).json({ success: false, error: "Server error" });
-          return;
+    // Update the category name if a new name is provided
+    if (req.body.name) {
+      category.name = req.body.name;
+    }
+
+    // Update the category image if a new image is provided
+    if (req.files && req.files.photo) {
+      const file = req.files.photo;
+      cloudinary.uploader.upload(
+        file.tempFilePath,
+        {
+          resource_type: "image",
+          format: "jpeg",
+        },
+        async (err, result) => {
+          if (err) {
+            res.status(500).json({ success: false, error: "Server error" });
+            return;
+          }
+
+          category.imageUrl = result.url;
+
+          const updatedCategory = await category.save();
+          res.status(200).json({ success: true, data: updatedCategory });
         }
-
-        category.name = req.body.name;
-        category.imageUrl = result.url;
-
-        const updatedCategory = await category.save();
-        res.status(200).json({ success: true, data: updatedCategory });
-      }
-    );
+      );
+    } else {
+      const updatedCategory = await category.save();
+      res.status(200).json({ success: true, data: updatedCategory });
+    }
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
 
 
 

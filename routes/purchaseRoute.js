@@ -4,26 +4,24 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Purchase = require("../model/purchaseModel");
-const OrderItem = require('../model/orderItem');
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
 const Cart = require("../model/cartModel");
+const OrderItem = require("../model/orderItemModel");
 
 
 
 //purchase order all record 
 router.get('/purchase', verifyAdminToken, isAdmin, async (req, res) => {
   try {
-    const purchase = await Purchase.find()
-      .populate('user', 'name')
-      .sort({ 'dateOrder': -1 });
-    if (!purchase) {
+    const purchases = await Purchase.find({}).populate('items.productId');
+    if (!purchases) {
       return res.status(404).json({ message: 'Purchase not found' });
     }
 
     res.status(200).json({
       success: true,
       message: 'Purchase and associated product and category retrieved successfully',
-      data: purchase,
+      data: purchases,
     });
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
@@ -33,45 +31,138 @@ router.get('/purchase', verifyAdminToken, isAdmin, async (req, res) => {
 
 
 //create purchase order record
-router.post('/purchase',  verifyUserToken, async (req, res) => {
+router.post('/purchase', verifyUserToken, async (req, res) => {
 
-  const { paymentMethod, shippingAddress } = req.body;
   try {
-    
-    // Find the user's cart
-    const cart = await Cart.findOne({ userId: req.user._id })
 
-    if (!cart) {
-      res.status(404).send('Cart not found');
-      return;
+    //get user's cart
+    const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
+if (!cart) {
+  // handle the case where the cart is not found
+  return res.status(404).json({ message: "Cart not found" });
+}
+console.log(cart.items[0].orderItem.productId.name);
+console.log(cart)
+
+    // const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
+    // console.log(cart.items[0].orderItem.productId.name);
+    // console.log(cart)
+
+
+    // if (!cart || !cart.items || cart.items.length === 0) {
+    //   return res.status(400).json({ success: false, message: 'Cart is empty' });
+    // }
+
+    // Find the item to be purchased
+    const productId = req.body.productId;
+    const item = cart.items.find((item) => item.productId._id.toString() === productId);
+
+    if (!item) {
+      return res.status(400).json({ success: false, message: 'Item not found in cart' });
     }
+
+    // Check if the quantity is a valid number
+    const quantity = parseInt(req.body.quantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid quantity' });
+    }
+
+    // Calculate the total price of the item
+    const totalPrice = quantity * item.productId.price;
     
-    console.log('Cart:', cart);
-
-    // Create and save a new purchase order record
-    const totalPrice = cart.orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
-    const purchase = new Purchase({
+    // Check if the item has already been purchased
+    const existingPurchase = await Purchase.findOne({
       userId: req.user._id,
-      orderItems: cart.orderItems,
-      totalPrice,
-      paymentMethod,
-      shippingAddress
+      'items.productId._id': item.productId._id,
     });
-    await purchase.save();
 
-    console.log('Purchase order:', purchase);
+    if (existingPurchase) {
+      // Update the existing purchase with a new entry for the purchased quantity
+      existingPurchase.items.push({ productId: item.productId, quantity: quantity });
+      existingPurchase.totalPrice += totalPrice;
+      await existingPurchase.save();
 
-    // Update cart to remove purchased items
-    const purchasedItems = purchase.orderItems.map(item => item._id);
-    cart.orderItems = cart.orderItems.filter(item => !purchasedItems.includes(item._id));
-    await cart.save();
+      // // Create a new order item
+      // const orderItem = new OrderItem({
+      //   productId: item.productId._id,
+      //   quantity: quantity,
+      //   totalPrice: totalPrice,
+      // });
 
-    console.log('Cart after saving remove purchase Item :', cart);
+      // await orderItem.save();
 
-    res.status(201).json({ success: true, message: 'Purchase order created', data: { purchaseOrder } });
-  } catch (error) {
+      // Update the purchased quantity and total price in the cart
+      item.quantity -= quantity;
+      cart.totalPrice -= totalPrice;
+
+      // Calculate the remaining quantity and total price of the item in the cart
+      const remainingQuantity = item.quantity;
+      const remainingTotalPrice = remainingQuantity * item.productId.price;
+
+      // Remove the item from the cart if the purchased quantity is equal to the cart quantity
+      if (item.quantity === 0) {
+        cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+      }
+
+      await cart.save();
+
+      res.status(200).json({
+        success: true, message: 'Purchase updated', data: {
+          purchase: existingPurchase,
+          remainingQuantity: remainingQuantity,
+          remainingTotalPrice: remainingTotalPrice,
+          // orderItem: orderItem,
+        }
+      });
+    } else {
+      //create new purchase
+      const purchase = new Purchase({
+        userId: req.user._id,
+        items: [{ productId: item.productId, quantity: quantity }],
+        totalPrice: totalPrice,
+        createdAt: new Date(),
+      });
+
+      await purchase.save();
+
+      // // Create a new order item
+      // const orderItem = new OrderItem({
+      //   productId: item.productId._id,
+      //   quantity: quantity,
+      //   totalPrice: totalPrice,
+      // });
+
+      // await orderItem.save();
+
+      // Update the purchased quantity and total price in the cart
+      item.quantity -= quantity;
+      cart.totalPrice -= totalPrice;
+
+      // Calculate the remaining quantity and total price of the item in the cart
+      const remainingQuantity = item.quantity;
+      const remainingTotalPrice = remainingQuantity * item.productId.price;
+
+      // Remove the item from the cart if the purchased quantity is equal to the cart quantity
+      if (item.quantity === 0) {
+        cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+      }
+
+      await cart.save();
+
+      res.status(200).json({
+        success: true, message: `Purchase Created...`, data: {
+          purchase: purchase,
+          // orderItem: orderItem,
+          remainingQuantity: remainingQuantity,
+          remainingTotalPrice: remainingTotalPrice,
+        }
+      });
+    }
+  }
+
+  catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({ success: false, message: `Server Error`, data: error });
   }
 });
 
@@ -105,16 +196,12 @@ router.put('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (r
 
 
 //delete purchase order record
-
 router.delete('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
   try {
-    const order = await Purchase.findOneAndDelete({ _id: req.params.id });
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+    const purchase = await Purchase.findByIdAndDelete(req.params.id);
+    if (!purchase) {
+      return res.status(404).send();
     }
-    await Promise.all(order.orderItem.map(async (orderItem) => {
-      await OrderItem.findOneAndDelete({ _id: orderItem });
-    }));
     return res.status(200).json({ success: true, message: 'The order is deleted!' });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Server error' });
@@ -176,15 +263,10 @@ router.get('/purchase/count', async (req, res) => {
 // //purchase order by id record 
 router.get('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
   try {
-    const purchase = await Purchase.findById(req.params.id)
-      .populate('user', 'name')
-      .populate({
-        path: 'orderItem', populate: [
-
-          { path: 'category', populate: { path: 'primeCollections' } },
-          { path: 'category', populate: { path: 'products' } }
-        ]
-      })
+    const purchase = await Purchase.findById(req.params.id).populate('items.productId');
+    if (!purchase) {
+      return res.status(404).send();
+    }
 
     if (!purchase) {
       return res.status(404).json({ message: 'Purchase not found' });

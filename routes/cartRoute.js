@@ -4,59 +4,89 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Cart = require("../model/cartModel");
-const OrderItem = require('../model/orderItem');
-const Purchase = require("../model/purchaseModel")
-const { verifyUserToken } = require('../middleware/token');
+const Product = require("../model/productModel");
+const { verifyUserToken, } = require('../middleware/token');
 
-//Create Cart
+
+//create cart
 router.post('/cart', verifyUserToken, async (req, res) => {
-
-  const { productId, name, description, price, quantity } = req.body;
-
   try {
+    const { productId, quantity , userId} = req.body;
 
-    // ----odereItem Logic Start ---
-    //create new orderitem 
-    const orderItem = new OrderItem({
-      productId, name, description, price, quantity 
-    });
-    
-    await orderItem.save();
+    // Get the product details from the database
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(400).json({ success: false, message: 'Invalid product ID' });
+    }
 
-    //--------User logic ---------- 
-    // find the cart for the current user
-    const  cart = await Cart.findOne({ userId: req.user._id })
-
-    if(!cart){
-      //Create a new cart if user doesn't have one
+    const cart = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
+    if (!cart) {
+      // If cart doesn't exist for the user, create a new cart
       const newCart = new Cart({
-        userId: req.user._id,
-        orderItems:[orderItem]
+        userId: userId,
+        token: req.token,
+        items: [
+          {
+            productId: productId,
+            quantity: quantity,
+          }
+        ],
+        totalPrice: product.price * req.body.quantity,
       });
       await newCart.save();
+      res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
     } else {
-      //Add order item to user's existing cart
-      cart.orderItems.push(orderItem);
-      await cart.save();
+      // If cart already exists for the user, update the cart with the new product and quantity
+      if (cart.token !== req.token) {
+        // If the token belongs to a different user, create a new cart
+        const newCart = new Cart({
+          userId: userId,
+          token: req.token,
+          items: [
+            {
+              productId: productId,
+              quantity: quantity,
+            }
+          ],
+          totalPrice: product.price * req.body.quantity,
+        });
+        await newCart.save();
+        res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+      } else {
+        // If the token belongs to the same user, update the existing cart
+        if (cart.items.find(item => item.productId.equals(productId))) {
+          const existingItem = cart.items.find(item => item.productId.equals(productId));
+          existingItem.quantity += req.body.quantity;
+        } else {
+          const newItem = {
+            productId,
+            quantity,
+          };
+          cart.items.push(newItem);
+        }
+        let totalPrice = 0;
+        for (let i = 0; i < cart.items.length; i++) {
+          const item = cart.items[i];
+          const product = await Product.findById(item.productId);
+          totalPrice += product.price * item.quantity;
+        }
+        cart.totalPrice = totalPrice;
+        await cart.save();
+        res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
+      }
     }
-    // Output all details of orderitem and userid in the response
-    const userId = req.user._id;
-    const orderItemId = orderItem._id;
-
-    res.status(201).json({ success: true, message: 'Item added to cart', data: {  userId: userId, 
-        orderItemId: orderItemId, 
-        cart: cart  } });
-  
-  }  catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error' });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, message: 'Server Error', data: error });
   }
-})
+});
 
 
 
 //update Cart
-router.put('/cart/:itemId', verifyUserToken, async (req, res) => {
-  const { itemId } = req.params;
+router.put('/cart/:id', verifyUserToken, async (req, res) => {
+
+  const { id } = req.params;
   const { quantity } = req.body;
 
   try {
@@ -68,22 +98,29 @@ router.put('/cart/:itemId', verifyUserToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
 
-   // Find the item in the cart and update the quantity
-    const itemIndex = cart.orderItems.findIndex((item) => item.item._id === itemId);
-    if (itemIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Item not found in cart' });
+    // Check if the item exists in the cart
+    const cartItem = cart.items.find(item => item._id.equals(id));
+    if (!cartItem) {
+      return res.status(400).json({ success: false, message: 'Item not found in cart' });
     }
 
-    cart.orderItems[itemIndex].quantity = quantity;
+    // Update the item quantity and prices
+    const product = await Product.findById(cartItem.productId);
+    if (!product) {
+      return res.status(400).json({ success: false, message: 'Product not found' });
+    }
 
-    //Save the updated cart to the database
-    await cart.save();
+    const oldQuantity = cartItem.quantity;
+    const newQuantity = quantity;
+    cartItem.quantity = newQuantity;
 
-    console.log(cart);
-    res.status(200).json({ success: true, message: 'Cart Updated SuccessFully', data: { cart } });
+    cart.totalPrice = cart.totalPrice - (product.price * oldQuantity) + (product.price * newQuantity);
+
+    // Save the changes to the cart
+    const updateCart = await cart.save();
+    res.status(200).json({ success: true, message: 'Cart Updated SuccessFully', data: { updateCart } });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 
@@ -92,34 +129,39 @@ router.put('/cart/:itemId', verifyUserToken, async (req, res) => {
 
 
 //delete Cart
-router.delete('/cart/:itemId', verifyUserToken, async (req, res) => {
+router.delete('/cart/:id', verifyUserToken, async (req, res) => {
 
-  const { itemId } = req.params;
+  const itemId = req.params.id;
+  const userId = req.user.id;
 
   try {
 
     // Find the cart for the current user
-    const cart = await Cart.findOne({ userId: req.user._id });
+    const cart = await Cart.findOne({ userId: userId });
 
     if (!cart) {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
 
-    // Find the item in the cart and remove it
-    const itemIndex = cart.orderItems.findIndex((item) => item.item._id === itemId);
-    if (itemIndex === -1) {
+    const item = cart.items.find(item => item._id.equals(itemId));
+    if (!item) {
       return res.status(404).json({ success: false, message: 'Item not found in cart' });
     }
 
-    cart.orderItems.splice(itemIndex, 1);
-    await cart.save();
+    // Remove the item from the cart
+    cart.items.pull(itemId);
 
-    res.status(200).json({ success: true, message: 'Delete Cart', data: cart });
+    // Recalculate the total price of the cart
+    const product = await Product.findById(item.productId);
+    cart.totalPrice -= product.price * item.quantity;
+     
+    // Save the changes to the cart
+    const deleteCart = await cart.save();
+
+    res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
-
   }
 
 });
@@ -127,40 +169,44 @@ router.delete('/cart/:itemId', verifyUserToken, async (req, res) => {
 
 
 //get Cart 
-router.get('/cart', async (req, res) => {
+router.get('/cart', verifyUserToken, async (req, res) => {
 
   try {
 
-    const allCart = await Cart.find();
-    res.status(200).json({ success: true, message: `All Cart Here ..`, data: allCart });
+      // Check if req.user exists
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'User not authenticated' });
+      }
+console.log(req.user);
+    // Find the cart for the user
+    const cart = await Cart.findOne({ userId: req.user._id })
+    console.log(cart);
+    if (!cart) {
+      return res.status(400).json({ success: false, message: 'Cart not found' });
+    }
+
+    const items = [];
+    for (let i = 0; i < cart.items.length; i++) {
+      const item = cart.items[i];
+      const product = await Product.findById(item.productId);
+      if (product) {
+        items.push({
+          productId: product._id,
+          name: product.name,
+          price: product.price,
+          quantity: item.quantity
+        });
+      }
+    }
+
+    res.status(200).json({ success: true, message: `All Cart Here ..`, data: { items, totalPrice: cart.totalPrice } });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
 
   }
 
 });
-
-
-
-//get by id
-router.get('/cart/:id', async (req, res) => {
-
-  try {
-
-    const getByIdCart = await Cart.find(req.params.id);
-    res.status(200).json({ success: true, message: `All Cart Here ..`, data: getByIdCart });
-
-  } catch (error) {
-    console.log(error)
-    res.status(500).json({ success: false, error: 'Server error' });
-
-  }
-
-});
-
-
 
 module.exports = router;
 
