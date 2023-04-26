@@ -120,7 +120,7 @@ router.put('/user/:id',verifyAdminToken, isAdmin,verifyUserToken,  async (req, r
             const hashedPassword = await bcrypt.hash(password, salt);
         }
 
-        const updatedUser = await User.findOneAndUpdate({_id: req.params.id}, { name, email, password:hashedPassword, phone }, { new: true });
+        const updatedUser = await User.findOneAndUpdate({_id: req.params.id}, { firstName, lastName, email,address,  password:hashedPassword, phone }, { new: true });
 
         res.status(200).json({ success: true, data: updatedUser });
     } catch (error) {
