@@ -10,7 +10,7 @@ const { verifyUserToken, } = require('../middleware/token');
 
 //create cart
 router.post('/cart', verifyUserToken, async (req, res) => {
-  try {
+  try {   
     const { productId, quantity , userId} = req.body;
 
     // Get the product details from the database
@@ -29,9 +29,10 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           {
             productId: productId,
             quantity: quantity,
+            price: product.discountedPrice 
           }
         ],
-        totalPrice: product.price * req.body.quantity,
+        totalPrice: product.discountedPrice * req.body.quantity,
       });
       await newCart.save();
       res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
@@ -46,9 +47,10 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             {
               productId: productId,
               quantity: quantity,
+              price: product.discountedPrice 
             }
           ],
-          totalPrice: product.price * req.body.quantity,
+          totalPrice: product.discountedPrice * req.body.quantity,
         });
         await newCart.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
@@ -61,13 +63,14 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           const newItem = {
             productId,
             quantity,
+            price: product.discountedPrice ,
           };
           cart.items.push(newItem);
         }
         let totalPrice = 0;
         for (let i = 0; i < cart.items.length; i++) {
           const item = cart.items[i];
-          const product = await Product.findById(item.productId);
+          // const product = await Product.findById(item.productId);
           totalPrice += product.price * item.quantity;
         }
         cart.totalPrice = totalPrice;

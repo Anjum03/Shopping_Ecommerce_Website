@@ -12,7 +12,7 @@ const { verifyUserToken ,verifyAdminToken, isAdmin,} = require('../middleware/to
 router.post('/register', async (req, res) => {
     try {
 
-        const { name, email, password, phone,role } = req.body;
+        const { firstName,lastName, email,address,  password, phone,role } = req.body;
 
         const userExists = await User.findOne({ email });
 
@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = await User.create({ name, email, password: hashedPassword, phone, role });
+        const user = await User.create({ firstName,lastName, email,address, password: hashedPassword, phone, role });
         const isAdmin = user.role === 'admin'; // check if the user is an admin
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8d" });
@@ -112,7 +112,7 @@ router.post('/logout', (req, res) => {
 //update user by id
 router.put('/user/:id',verifyAdminToken, isAdmin,verifyUserToken,  async (req, res) => {
     try {
-        const { name, email, password, phone } = req.body;
+        const { firstName,lastName, email,address,  password, phone,role } = req.body;
         let hashedPassword = password;
         if(password){
 
