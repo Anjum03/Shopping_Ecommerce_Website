@@ -124,41 +124,42 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
     try {
         const imageUrls = await Promise.all(uploadPromises);
 
-const discountPercentage = parseInt(req.body.discount.replace("%", ""));
-const price = parseFloat(req.body.price);
-const discountAmount = price * (discountPercentage / 100);
-const discountedPrice = price - discountAmount;
-const totalPrice = Math.round(discountedPrice);
-
-const product = new Product({
-  name: req.body.name,
-  description: req.body.description,
-  imageUrl: imageUrls,
-  fabric: req.body.fabric,
-  event: req.body.event,
-  category: req.body.category,
-  size: req.body.size,
-  bodyShape: req.body.bodyShape,
-  color: req.body.color,
-  clothMeasurement: req.body.clothMeasurement,
-  returnPolicy: req.body.returnPolicy,
-  stockAvaliability: req.body.stockAvaliability,
-  age: req.body.age,
-  discount: discountPercentage,
-  price: price,
-  totalPrice: totalPrice
-});
-
-// Save the product to the database
-const newProduct = await product.save();
-
-// Add the product to the category's products array
-category.products.push(product._id);
-await category.save();
-
-// Send the new product object as the response
-res.status(201).json({ success: true, data: newProduct });
-
+        const discountPercentage = parseInt(req.body.discount.replace("%", ""));
+        const price = parseFloat(req.body.price);
+        const discountAmount = price * (discountPercentage / 100);
+        const discountedPrice = price - discountAmount;
+        const totalPrice = Math.round(discountedPrice);
+        
+        const product = new Product({
+          name: req.body.name,
+          description: req.body.description,
+          imageUrl: imageUrls,
+          fabric: req.body.fabric,
+          event: req.body.event,
+          category: req.body.category,
+          size: req.body.size,
+          bodyShape: req.body.bodyShape,
+          color: req.body.color,
+          clothMeasurement: req.body.clothMeasurement,
+          returnPolicy: req.body.returnPolicy,
+          stockAvaliability: req.body.stockAvaliability,
+          age: req.body.age,
+          discount: `${discountPercentage}%`, // Add the percentage symbol here
+          price: price,
+          totalPrice: totalPrice
+        });
+        
+        // Save the product to the database
+        const newProduct = await product.save();
+        
+        // Add the product to the category's products array
+        category.products.push(product._id);
+        await category.save();
+        
+        // Send the new product object as the response
+        // res.status(201).json({ success: true, data: newProduct.toObject(), }); // Add the percentage symbol here
+        res.status(201).json({ success: true, data: newProduct}); // Add the percentage symbol here
+        
     } catch (error) {
         console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
@@ -246,22 +247,31 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.stockAvaliability =
             req.body.stockAvaliability || product.stockAvaliability;
         product.age = req.body.age || product.age;
+        product.discount = req.body.discount || product.discount ;
+        product.price = parseFloat(req.body.price) || product.price;
 
-        // Update the discount and price fields if the discount value has changed
-        const newDiscountPercentage = parseInt(req.body.discount);
-        if (!isNaN(newDiscountPercentage) && newDiscountPercentage !== product.discount) {
-            const newDiscountFactor = 1 - (newDiscountPercentage / 100);
-            product.discount = newDiscountPercentage;
-            product.price = product.price * newDiscountFactor;
-        }
+         // Recalculate the total price if the price or discount changes
+    const price = product.price;
+    const discountPercentage = parseInt(product.discount.replace("%", ""));
+    const discountAmount = price * (discountPercentage / 100);
+    const discountedPrice = price - discountAmount;
+    const totalPrice = Math.round(discountedPrice);
+
+    product.totalPrice = totalPrice;
+
         const updatedProduct = await product.save();
+
+        updatedProduct.discount = `${updatedProduct.discount}%`;
 
         // Update the product in the category's products array
         const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
         category.products[productIndex] = updatedProduct._id;
+
         await category.save();
+         // Include the percentage symbol in the discount field of the response
 
         res.status(200).json({ success: true, data: updatedProduct });
+
     } catch (error) {
         console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });

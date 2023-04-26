@@ -168,6 +168,7 @@ router.delete("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
     }
 
     await category.deleteOne();
+    await Product.deleteMany({ category: categoryId });
     res.status(200).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, error: "Server error" });

@@ -16,7 +16,7 @@ const productSchema = new mongoose.Schema({
     returnPolicy:{ type: Number },
     stockAvaliability:{ type: Number },
     age:{ type: String, enum: ['15-20', '20-25', '25-30', '37-45', ] },
-    discount:{ type: Number },
+    discount:{ type: String },
     price:{ type: Number },
     totalPrice:{ type: Number },
 },{timestamps: true}

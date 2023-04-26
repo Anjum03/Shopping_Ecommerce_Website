@@ -238,7 +238,6 @@ router.get('/purchase/totalSale', verifyAdminToken, isAdmin, async (req, res) =>
 
 
 
-
 // //order Count
 router.get('/purchase/count', async (req, res) => {
 

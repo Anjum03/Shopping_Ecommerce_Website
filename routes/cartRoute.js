@@ -10,7 +10,7 @@ const { verifyUserToken, } = require('../middleware/token');
 
 //create cart
 router.post('/cart', verifyUserToken, async (req, res) => {
-  try {   
+  try {
     const { productId, quantity , userId} = req.body;
 
     // Get the product details from the database
@@ -29,10 +29,9 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           {
             productId: productId,
             quantity: quantity,
-            price: product.discountedPrice 
           }
         ],
-        totalPrice: product.discountedPrice * req.body.quantity,
+        totalPrice: product.totalPrice * req.body.quantity,
       });
       await newCart.save();
       res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
@@ -47,10 +46,9 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             {
               productId: productId,
               quantity: quantity,
-              price: product.discountedPrice 
             }
           ],
-          totalPrice: product.discountedPrice * req.body.quantity,
+          totalPrice: product.totalPrice * req.body.quantity,
         });
         await newCart.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
@@ -63,15 +61,14 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           const newItem = {
             productId,
             quantity,
-            price: product.discountedPrice ,
           };
           cart.items.push(newItem);
         }
         let totalPrice = 0;
         for (let i = 0; i < cart.items.length; i++) {
           const item = cart.items[i];
-          // const product = await Product.findById(item.productId);
-          totalPrice += product.price * item.quantity;
+          const product = await Product.findById(item.productId);
+          totalPrice += product.totalPrice * item.quantity;
         }
         cart.totalPrice = totalPrice;
         await cart.save();
@@ -175,7 +172,6 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
 router.get('/cart', verifyUserToken, async (req, res) => {
 
   try {
-
       // Check if req.user exists
       if (!req.user) {
         return res.status(401).json({ success: false, message: 'User not authenticated' });
@@ -184,6 +180,7 @@ console.log(req.user);
     // Find the cart for the user
     const cart = await Cart.findOne({ userId: req.user._id })
     console.log(cart);
+    
     if (!cart) {
       return res.status(400).json({ success: false, message: 'Cart not found' });
     }
