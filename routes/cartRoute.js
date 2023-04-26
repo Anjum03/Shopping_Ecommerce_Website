@@ -70,7 +70,9 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           const product = await Product.findById(item.productId);
           totalPrice += product.totalPrice * item.quantity;
         }
-        cart.totalPrice = totalPrice;
+          cart.totalPrice += product.totalPrice * req.body.quantity;
+
+        // cart.totalPrice = totalPrice;
         await cart.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
       }
@@ -80,6 +82,149 @@ router.post('/cart', verifyUserToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error', data: error });
   }
 });
+// router.post('/cart', verifyUserToken, async (req, res) => {
+//   try {
+//     const { productId, quantity , userId} = req.body;
+
+//     // Get the product details from the database
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(400).json({ success: false, message: 'Invalid product ID' });
+//     }
+//     const cart = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
+//     if (!cart) {
+//       // If cart doesn't exist for the user, create a new cart
+//       const newCart = new Cart({
+//         userId: userId,
+//         token: req.token,
+//         items: [
+//           {
+//             productId: productId,
+//             quantity: quantity,
+//           }
+//         ],
+//         totalPrice: product.price * req.body.quantity,
+//       });
+//       await newCart.save();
+//       res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+//     } else {
+//       // If cart already exists for the user, update the cart with the new product and quantity
+//       if (cart.token !== req.token) {
+//         // If the token belongs to a different user, create a new cart
+//         const newCart = new Cart({
+//           userId: userId,
+//           token: req.token,
+//           items: [
+//             {
+//               productId: productId,
+//               quantity: quantity,
+//             }
+//           ],
+//           totalPrice: product.price * req.body.quantity,
+//         });
+//         await newCart.save();
+//         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+//       } else {
+//         // If the token belongs to the same user, update the existing cart
+//         if (cart.items.find(item => item.productId.equals(productId))) {
+//           const existingItem = cart.items.find(item => item.productId.equals(productId));
+//           existingItem.quantity += req.body.quantity;
+//         } else {
+//           const newItem = {
+//             productId,
+//             quantity,
+//           };
+//           cart.items.push(newItem);
+//         }
+//         let totalPrice = 0;
+//         for (let i = 0; i < cart.items.length; i++) {
+//           const item = cart.items[i];
+//           const product = await Product.findById(item.productId);
+//           totalPrice += product.price * item.quantity;
+//         }
+//         cart.totalPrice = totalPrice;
+//         await cart.save();
+//         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
+
+//       }
+//     }
+//   } catch (error) {
+//     console.log(error)
+//     res.status(500).json({ success: false, message: 'Server Error', data: error });
+//   }
+// });
+
+// router.post('/cart', verifyUserToken, async (req, res) => {
+//   try {
+//     const { productId, quantity , userId} = req.body;
+
+//     // Get the product details from the database
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(400).json({ success: false, message: 'Invalid product ID' });
+//     }
+
+//     const cart = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
+//     if (!cart) {
+//       // If cart doesn't exist for the user, create a new cart
+//       const newCart = new Cart({
+//         userId: userId,
+//         token: req.token,
+//         items: [
+//           {
+//             productId: productId,
+//             quantity: quantity,
+//           }
+//         ],
+//         totalPrice: product.price * req.body.quantity,
+//       });
+//       await newCart.save();
+//       res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+//     } else {
+//       // If cart already exists for the user, update the cart with the new product and quantity
+//       if (cart.token !== req.token) {
+//         // If the token belongs to a different user, create a new cart
+//         const newCart = new Cart({
+//           userId: userId,
+//           token: req.token,
+//           items: [
+//             {
+//               productId: productId,
+//               quantity: quantity,
+//             }
+//           ],
+//           totalPrice: product.price * req.body.quantity,
+//         });
+//         await newCart.save();
+//         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+//       } else {
+//         // If the token belongs to the same user, update the existing cart
+//         if (cart.items.find(item => item.productId.equals(productId))) {
+//           const existingItem = cart.items.find(item => item.productId.equals(productId));
+//           existingItem.quantity += req.body.quantity;
+//         } else {
+//           const newItem = {
+//             productId,
+//             quantity,
+//           };
+//           cart.items.push(newItem);
+//         }
+//         let totalPrice = 0;
+//         for (let i = 0; i < cart.items.length; i++) {
+//           const item = cart.items[i];
+//           const product = await Product.findById(item.productId);
+//           totalPrice += product.price * item.quantity;
+//         }
+//         cart.totalPrice = totalPrice;
+//         await cart.save();
+//         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
+//       }
+//     }
+//   } catch (error) {
+//     console.log(error)
+//     res.status(500).json({ success: false, message: 'Server Error', data: error });
+//   }
+// });
 
 
 
