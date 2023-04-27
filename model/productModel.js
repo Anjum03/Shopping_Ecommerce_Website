@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema({
     clothMeasurement: { type: String },
     returnPolicy:{ type: Number },
     stockAvaliability:{ type: Number },
-    age:{ type: String, enum: ['15-20', '20-25', '25-30', '37-45', ] },
+    age:{ type: String, enum: ['15-20', '20-25', '25-30','30-36', '37-45', ] },
     discount:{ type: String },
     price:{ type: Number },
     totalPrice:{ type: Number },
