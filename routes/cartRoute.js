@@ -1,16 +1,16 @@
 
-
 require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Cart = require("../model/cartModel");
 const Product = require("../model/productModel");
-const OrderItem = require("../model/orderItemModel"); 
+const OrderItem = require("../model/orderItemModel");
 const { verifyUserToken, } = require('../middleware/token');
 
 
 //create cart
 router.post('/cart', verifyUserToken, async (req, res) => {
+
   try {
     const { productId, quantity, userId } = req.body;
 
@@ -37,7 +37,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
       await newCart.save();
 
       // Create a new order with the cart items
-      const newOrder = new Order({
+      const newOrder = new OrderItem({
         userId: userId,
         items: newCart.items,
         totalPrice: newCart.totalPrice,
@@ -50,7 +50,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         orderId: newOrder._id,
         productId: productId,
         quantity: quantity,
-        price: product.price,
+        price: product.totalPrice,
         totalPrice: product.totalPrice * quantity,
       });
       await newOrderItem.save();
@@ -87,7 +87,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           orderId: newOrder._id,
           productId: productId,
           quantity: quantity,
-          price: product.price,
+          price: product.totalPrice,
           totalPrice: product.totalPrice * quantity,
         });
         await newOrderItem.save();
@@ -114,9 +114,10 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         cart.totalPrice += product.totalPrice * req.body.quantity;
 
         // Update the existing order item or create a new one
-        const existingOrderItem = await OrderItem.findOne({ userId: userId, productId: productId });
+        let existingOrderItem = await OrderItem.findOne({ userId: userId, productId: productId });
         if (existingOrderItem) {
-          existingOrderItem.quantity += req.body.quantity;
+          existingOrderItem.quantity += quantity;
+          existingOrderItem.price = product.totalPrice;
           await existingOrderItem.save();
         } else {
           const newOrderItem = new OrderItem({
@@ -126,6 +127,8 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             price: product.totalPrice,
           });
           await newOrderItem.save();
+          // existingOrderItem = newOrderItem; // Set existingOrderItem to the newOrderItem
+
         }
         await cart.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
@@ -215,6 +218,9 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
     // Save the changes to the cart
     const deleteCart = await cart.save();
 
+    // Delete the corresponding OrderItem entry from the database
+    await OrderItem.deleteOne({ userId, productId: item.productId });
+
     res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart });
 
   } catch (error) {
@@ -262,4 +268,3 @@ router.get('/cart', verifyUserToken, async (req, res) => {
 });
 
 module.exports = router;
-

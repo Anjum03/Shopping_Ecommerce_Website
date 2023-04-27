@@ -42,8 +42,8 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       // handle the case where the cart is not found
       return res.status(404).json({ message: "Cart not found" });
     }
-    console.log(cart.items[0].orderItem.productId.name);
-    console.log(cart)
+    // console.log(cart.items[0].orderItem.productId.name);
+    // console.log(cart)
 
     // const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
     // console.log(cart.items[0].orderItem.productId.name);
@@ -92,6 +92,17 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       existingPurchase.totalPrice += totalPrice;
       await existingPurchase.save();
 
+      
+      // Remove the purchased item from the cart
+      cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+
+      // Remove the order item from the database
+      await OrderItem.findOneAndDelete({ _id: orderItem._id });
+
+      await cart.save();
+
+
+
       // // Create a new order item
       // const orderItem = new OrderItem({
       //   productId: item.productId._id,
@@ -101,20 +112,20 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
 
       // await orderItem.save();
 
-      // Update the purchased quantity and total price in the cart
-      item.quantity -= quantity;
-      cart.totalPrice -= totalPrice;
+      // // Update the purchased quantity and total price in the cart
+      // item.quantity -= quantity;
+      // cart.totalPrice -= totalPrice;
 
-      // Calculate the remaining quantity and total price of the item in the cart
-      const remainingQuantity = item.quantity;
-      const remainingTotalPrice = remainingQuantity * item.productId.price;
+      // // Calculate the remaining quantity and total price of the item in the cart
+      // const remainingQuantity = item.quantity;
+      // const remainingTotalPrice = remainingQuantity * item.productId.price;
 
-      // Remove the item from the cart if the purchased quantity is equal to the cart quantity
-      if (item.quantity === 0) {
-        cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
-      }
+      // // Remove the item from the cart if the purchased quantity is equal to the cart quantity
+      // if (item.quantity === 0) {
+      //   cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+      // }
 
-      await cart.save();
+      // await cart.save();
 
       res.status(200).json({
         success: true, message: 'Purchase updated', data: {
@@ -125,24 +136,26 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
         }
       });
     } else {
-      //create new purchase
+      
+      // Create a new order item
+      // Create a new purchase record
       const purchase = new Purchase({
-        userId: req.user._id, items: [orderItem._id],
+        userId: req.user._id,
+        items: [orderItem._id],
         totalPrice: totalPrice,
         createdAt: new Date(),
       });
 
       await purchase.save();
 
-      // Create a new order item
-      const orderItem = purchase.items.map(item => new OrderItem({
-        productId: item.productId._id,
-        quantity: quantity,
-        price: item.totalPrice / item.quantity,
-      }));
+      // Remove the purchased item from the cart
+      cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
 
-      // Save the OrderItems to the database
-      await OrderItem.insertMany(orderItems);
+      // Remove the order item from the database
+      await OrderItem.findOneAndDelete({ _id: orderItem._id });
+
+      // Save the changes to the cart
+      await cart.save();
 
       // Update the purchased quantity and total price in the cart
       item.quantity -= quantity;
@@ -153,11 +166,11 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       const remainingTotalPrice = remainingQuantity * item.productId.totalPrice;
 
       // Remove the item from the cart if the purchased quantity is equal to the cart quantity
-      if (item.quantity === 0) {
-        cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
-      }
+      // if (item.quantity === 0) {
+      //   cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+      // }
 
-      await cart.save();
+      // await cart.save();
 
       res.status(200).json({
         success: true, message: `Purchase Created...`, data: {
