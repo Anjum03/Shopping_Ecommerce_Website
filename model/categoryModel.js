@@ -13,9 +13,7 @@ const categorySchema = new mongoose.Schema({
   populate: {
     path: 'price'
   }}],
-  primeCollections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PrimeCollection',  populate: {
-    path: 'price'
-  } }],
+  
 },{timestamps: true});
 
 module.exports = mongoose.model('Category', categorySchema);

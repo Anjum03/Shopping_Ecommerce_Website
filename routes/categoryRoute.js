@@ -17,7 +17,7 @@ cloudinary.config({
 //view all category
 router.get("/category",  async (req, res) => {
   try {
-    const categories = await Category.find().populate('products', 'primeCollections');
+    const categories = await Category.find().populate('products');
     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
   } catch (error) {
@@ -38,16 +38,16 @@ router.get("/category/stats",  async (req, res) => {
 });
 
 
-//filter for any pproducts or primeCollections
+//filter for any pproducts 
 router.get("/category", async (req, res) => {
 
   try {
 
     let filter = {};
-    if (req.query.products || req.query.primeCollections) {
-      filter = { products: req.query.products.split(','), primeCollections: req.query.primeCollections.split(',') }
+    if (req.query.products ) {
+      filter = { products: req.query.products.split(',') }
     }
-    const categoriesList = await Category.find(filter).populate('products', 'primeCollections');
+    const categoriesList = await Category.find(filter).populate('products', );
     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categoriesList });
 
   } catch (error) {
@@ -59,7 +59,7 @@ router.get("/category", async (req, res) => {
 //get by id
 router.get("/category/:id",  async (req, res) => {
   try {
-    const categories = await Category.findById(req.params.id).populate('products', 'primeCollections');
+    const categories = await Category.findById(req.params.id).populate('products');
     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
   } catch (error) {

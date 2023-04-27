@@ -289,8 +289,6 @@ router.get('/purchase/userOrder/:usersId', verifyUserToken, verifyAdminToken, is
     const userOrderList = await Purchase.find({ user: req.params.usersId })
       .populate({
         path: 'orderItem', populate: [
-
-          { path: 'category', populate: { path: 'primeCollections' } },
           { path: 'category', populate: { path: 'products' } }
         ]
       })
