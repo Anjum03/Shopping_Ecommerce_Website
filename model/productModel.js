@@ -19,6 +19,7 @@ const productSchema = new mongoose.Schema({
     discount:{ type: String },
     price:{ type: Number },
     totalPrice:{ type: Number },
+    
 },{timestamps: true}
 );
 

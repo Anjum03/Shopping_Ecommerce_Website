@@ -15,29 +15,65 @@ cloudinary.config({
 
 
 
-// Get all products in a category with paginaton
+
+// // Get all products in a category with paginaton
 router.get('/category/:categoryId/product', async (req, res) => {
     try {
+
+        let filter = {};
+
         const category = await Category.findById(req.params.categoryId).populate('products');
         if (!category) {
             return res.status(404).send({ error: 'Category not found' });
         }
 
-        //pagination
-
         let products = category.products;
 
+        // Check if the "publish" flag is set to true
+        if (req.query.publish === 'true') {
+            // Filter the products to only include those that are published
+            filter = {};
+        } else{
+            filter = {published: true};
+        }
+
+        // Apply pagination
         const qNew = req.query.new;
         if (qNew) {
             products = products.sort({ createdAt: -1 }).limit(10)
         }
-
-        res.status(200).json({ success: true, data: category.products });
+        
+        // Return the filtered and paginated products
+        res.status(200).json({ success: true, data: products });
 
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
+
+// router.get('/category/:categoryId/product', async (req, res) => {
+//     try {
+//         const category = await Category.findById(req.params.categoryId).populate('products');
+//         if (!category) {
+//             return res.status(404).send({ error: 'Category not found' });
+//         }
+
+//         //pagination
+
+//         let products = category.products;
+
+//         const qNew = req.query.new;
+//         if (qNew) {
+//             products = products.sort({ createdAt: -1 }).limit(10)
+//         }
+
+//         res.status(200).json({ success: true, data: category.products });
+
+//     } catch (error) {
+//         res.status(500).json({ success: false, error: 'Server error' });
+//     }
+// });
 
 
 
