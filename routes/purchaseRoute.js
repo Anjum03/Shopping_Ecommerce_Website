@@ -35,19 +35,19 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
 
   try {
 
+    userId = req.user._id;
     //get user's cart
-    const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
-if (!cart) {
-  // handle the case where the cart is not found
-  return res.status(404).json({ message: "Cart not found" });
-}
-console.log(cart.items[0].orderItem.productId.name);
-console.log(cart)
+    const cart = await Cart.findOne(userId).populate('items.productId');
+    if (!cart) {
+      // handle the case where the cart is not found
+      return res.status(404).json({ message: "Cart not found" });
+    }
+    console.log(cart.items[0].orderItem.productId.name);
+    console.log(cart)
 
     // const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
     // console.log(cart.items[0].orderItem.productId.name);
     // console.log(cart)
-
 
     // if (!cart || !cart.items || cart.items.length === 0) {
     //   return res.status(400).json({ success: false, message: 'Cart is empty' });
@@ -68,11 +68,21 @@ console.log(cart)
     }
 
     // Calculate the total price of the item
-    const totalPrice = quantity * item.productId.price;
-    
+    const totalPrice = quantity * item.productId.totalPrice;
+
+    // create a new order item
+    const orderItem = new OrderItem({
+      productId: item.productId._id,
+      quantity: quantity,
+      price: item.productId.totalPrice,
+      paymentMode: req.body.paymentMode
+    });
+
+    await orderItem.save();
+
     // Check if the item has already been purchased
     const existingPurchase = await Purchase.findOne({
-      userId: req.user._id,
+      userId,
       'items.productId._id': item.productId._id,
     });
 
@@ -111,28 +121,28 @@ console.log(cart)
           purchase: existingPurchase,
           remainingQuantity: remainingQuantity,
           remainingTotalPrice: remainingTotalPrice,
-          // orderItem: orderItem,
+          orderItem: orderItem,
         }
       });
     } else {
       //create new purchase
       const purchase = new Purchase({
-        userId: req.user._id,
-        items: [{ productId: item.productId, quantity: quantity }],
+        userId: req.user._id, items: [orderItem._id],
         totalPrice: totalPrice,
         createdAt: new Date(),
       });
 
       await purchase.save();
 
-      // // Create a new order item
-      // const orderItem = new OrderItem({
-      //   productId: item.productId._id,
-      //   quantity: quantity,
-      //   totalPrice: totalPrice,
-      // });
+      // Create a new order item
+      const orderItem = purchase.items.map(item => new OrderItem({
+        productId: item.productId._id,
+        quantity: quantity,
+        price: item.totalPrice / item.quantity,
+      }));
 
-      // await orderItem.save();
+      // Save the OrderItems to the database
+      await OrderItem.insertMany(orderItems);
 
       // Update the purchased quantity and total price in the cart
       item.quantity -= quantity;
@@ -140,7 +150,7 @@ console.log(cart)
 
       // Calculate the remaining quantity and total price of the item in the cart
       const remainingQuantity = item.quantity;
-      const remainingTotalPrice = remainingQuantity * item.productId.price;
+      const remainingTotalPrice = remainingQuantity * item.productId.totalPrice;
 
       // Remove the item from the cart if the purchased quantity is equal to the cart quantity
       if (item.quantity === 0) {
@@ -152,7 +162,7 @@ console.log(cart)
       res.status(200).json({
         success: true, message: `Purchase Created...`, data: {
           purchase: purchase,
-          // orderItem: orderItem,
+          orderItem: orderItem,
           remainingQuantity: remainingQuantity,
           remainingTotalPrice: remainingTotalPrice,
         }
@@ -165,7 +175,6 @@ console.log(cart)
     res.status(500).json({ success: false, message: `Server Error`, data: error });
   }
 });
-
 
 
 
@@ -191,7 +200,6 @@ router.put('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (r
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 
 

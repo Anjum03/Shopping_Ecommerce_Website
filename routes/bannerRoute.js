@@ -191,7 +191,7 @@ router.delete('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
 
 
 //get all banner with pagination
-router.get('/banner', verifyAdminToken, isAdmin, async(req,res)=>{
+router.get('/banner',  async(req,res)=>{
     try{
         const banners = await Banner.find();
         
@@ -211,7 +211,7 @@ router.get('/banner', verifyAdminToken, isAdmin, async(req,res)=>{
 
 
 //get by ID banner
-router.get('/banner/:id', verifyAdminToken, isAdmin, async(req,res)=>{
+router.get('/banner/:id',  async(req,res)=>{
     try{
 
     const bannerId = req.params.id;

@@ -5,13 +5,14 @@ const express = require('express');
 const router = express.Router();
 const Cart = require("../model/cartModel");
 const Product = require("../model/productModel");
+const OrderItem = require("../model/orderItemModel"); 
 const { verifyUserToken, } = require('../middleware/token');
 
 
 //create cart
 router.post('/cart', verifyUserToken, async (req, res) => {
   try {
-    const { productId, quantity , userId} = req.body;
+    const { productId, quantity, userId } = req.body;
 
     // Get the product details from the database
     const product = await Product.findById(productId);
@@ -34,6 +35,26 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         totalPrice: product.totalPrice * req.body.quantity,
       });
       await newCart.save();
+
+      // Create a new order with the cart items
+      const newOrder = new Order({
+        userId: userId,
+        items: newCart.items,
+        totalPrice: newCart.totalPrice,
+        status: 'pending',
+      });
+      await newOrder.save();
+
+      // Create a new order item
+      const newOrderItem = new OrderItem({
+        orderId: newOrder._id,
+        productId: productId,
+        quantity: quantity,
+        price: product.price,
+        totalPrice: product.totalPrice * quantity,
+      });
+      await newOrderItem.save();
+
       res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
     } else {
       // If cart already exists for the user, update the cart with the new product and quantity
@@ -51,6 +72,26 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           totalPrice: product.totalPrice * req.body.quantity,
         });
         await newCart.save();
+
+        // Create a new order with the cart items
+        const newOrder = new Order({
+          userId: userId,
+          items: newCart.items,
+          totalPrice: newCart.totalPrice,
+          status: 'pending',
+        });
+        await newOrder.save();
+
+        // Create a new order item
+        const newOrderItem = new OrderItem({
+          orderId: newOrder._id,
+          productId: productId,
+          quantity: quantity,
+          price: product.price,
+          totalPrice: product.totalPrice * quantity,
+        });
+        await newOrderItem.save();
+
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
       } else {
         // If the token belongs to the same user, update the existing cart
@@ -70,13 +111,28 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           const product = await Product.findById(item.productId);
           totalPrice += product.totalPrice * item.quantity;
         }
-          cart.totalPrice += product.totalPrice * req.body.quantity;
+        cart.totalPrice += product.totalPrice * req.body.quantity;
 
+        // Update the existing order item or create a new one
+        const existingOrderItem = await OrderItem.findOne({ userId: userId, productId: productId });
+        if (existingOrderItem) {
+          existingOrderItem.quantity += req.body.quantity;
+          await existingOrderItem.save();
+        } else {
+          const newOrderItem = new OrderItem({
+            userId: userId,
+            productId: productId,
+            quantity: quantity,
+            price: product.totalPrice,
+          });
+          await newOrderItem.save();
+        }
         await cart.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId } });
       }
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, message: 'Server Error', data: error });
   }
 });
@@ -90,7 +146,7 @@ router.put('/cart/:id', verifyUserToken, async (req, res) => {
   const { quantity } = req.body;
 
   try {
-userId = req.user._id
+    userId = req.user._id
     //check if the user has access to the cart ==--- current user
     const cart = await Cart.findOne(userId);
 
@@ -155,7 +211,7 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
     // Recalculate the total price of the cart
     const product = await Product.findById(item.productId);
     cart.totalPrice -= product.totalPrice * item.quantity;
-     
+
     // Save the changes to the cart
     const deleteCart = await cart.save();
 
@@ -177,7 +233,7 @@ router.get('/cart', verifyUserToken, async (req, res) => {
 
     // Find the cart for the user
     const cart = await Cart.findOne(userId)
-    
+
     if (!cart) {
       return res.status(400).json({ success: false, message: 'Cart not found' });
     }
