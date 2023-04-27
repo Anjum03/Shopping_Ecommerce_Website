@@ -39,8 +39,6 @@ app.use('/', productRoute);
 const purchaseRoute = require("./routes/purchaseRoute");
 app.use('/', purchaseRoute);
 
-const primeCollectionRoute = require("./routes/primeCollectionRoute");
-app.use('/', primeCollectionRoute);
 
 const userRoute = require("./routes/userRoute");
 app.use('/', userRoute);
