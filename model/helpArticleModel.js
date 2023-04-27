@@ -12,6 +12,7 @@ const helpArticlesSchema = new mongoose.Schema({
   Email: String,
   whatsapp: Number,
   size: String,
+  color: String,
   newQuery:{type: String},
   stockAvailability: Number,
   status: { type: String, enum: ['Open', 'Answered', 'Closed'], default: 'Open' },
