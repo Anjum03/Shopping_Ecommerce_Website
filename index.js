@@ -39,7 +39,6 @@ app.use('/', productRoute);
 const purchaseRoute = require("./routes/purchaseRoute");
 app.use('/', purchaseRoute);
 
-
 const userRoute = require("./routes/userRoute");
 app.use('/', userRoute);
 
