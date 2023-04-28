@@ -23,7 +23,7 @@ function verifyAdminToken(req, res, next) {
 
   jwt.verify(token, process.env.JWT_SECRET_KEY, function (err, decoded) {
     if (err) return console.log("Failed to authenticate admin token ...."),
-    res.status(500).json({ message: 'Failed to authenticate admin token.' });
+      res.status(500).json({ message: 'Failed to authenticate admin token.' });
 
     req.admin = decoded;
 
@@ -47,10 +47,13 @@ const isAdmin = async (req, res, next) => {
     });
 };
 
-
 module.exports = {
-    verifyUserToken,
-    verifyAdminToken,
-    isAdmin
+  
+  verifyUserToken,
+  verifyAdminToken,
+  isAdmin
 
 }
+
+// if status = pulish --> no need ask token -->  admin and user can view publish status of category
+// if status = unpulish -->need to ask token --> only  admin can view publish and unpulish status of category

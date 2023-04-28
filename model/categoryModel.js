@@ -16,7 +16,7 @@ const categorySchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["publish", "unpublish", ],
-    default: "publish",
+    default: "unpublish",
   },
   
 },{timestamps: true});

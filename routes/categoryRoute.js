@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Category = require("../model/categoryModel");
 const cloudinary = require('cloudinary').v2;
-const  { verifyAdminToken, isAdmin} = require('../middleware/token');
+const  { verifyAdminToken, isAdmin, verifyUserToken, verifyToken, isAuthorized} = require('../middleware/token');
 
 //config
 cloudinary.config({ 
@@ -14,9 +14,26 @@ cloudinary.config({
 });
 
 
-//view all category
-router.get("/category",  async (req, res) => {
+//view all category by publish data
+router.get("/category", async (req, res) => {
   try {
+    const status = req.query.status;
+
+    let categories;
+    if (status && status === 'publish') {
+      categories = await Category.find({ status: 'publish' }).populate('products');
+    }
+    res.status(200).json({ success: true, message: `All Categories of Publish Data is Here ..`, data: categories });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// GET /category - Get all categories
+router.get("/categories",verifyAdminToken, isAdmin,  async (req, res) => {
+  try {
+    
     const categories = await Category.find().populate('products');
     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
@@ -39,67 +56,88 @@ router.get("/category/stats",  async (req, res) => {
 
 
 //filter for any pproducts 
-router.get('/category', async (req, res) => {
+// router.get('/category',  async (req, res) => {
+//   try {
+//     const { role } = req.user;
+//     const { status } = req.query;
+//     let filter = {};
+//     if (status === 'publish') {
+//       filter = { isPublished: true };
+//     } else if (status === 'unpublish') {
+//       filter = { isPublished: false };
+//     }
+//     if (role === 'admin') {
+//       const categoriesList = await Category.find(filter).populate('products');
+//       console.log(categoriesList);
+//       return res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
+//     } else {
+//       const categoriesList = await Category.find({ ...filter, isPublished: true }).populate('products');
+//       return res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({ success: false, error: 'Server error' });
+//   }
+// });
+// router.get('/category', async (req, res) => {
 
-// 1 .--> role = admin = show all categires and save in db 
-//2. --> role = user  = if published ittem can view
-//3. --> publish = true = all categgories  shown tto user and admin
-//4. --> unpublish = true = show  item to admin but not show ittem to user
-try{
+// // 1 .--> role = admin = show all categires and save in db 
+// //2. --> role = user (register user and no register user both can view)  = only published ittem can view
+// //3. --> publish = true = all categgories  shown tto user and admin
+// //4. --> unpublish = true = show  item to admin but not show ittem to user
+
+// // try{
    
-const status = 'publish' ;
-  if(req.user.role === 'admin'){
+// // const status = 'publish' ;
+// // console.log(req.user.role);
 
-    if(status === 'publish'){
+// //   if(req.user.role === 'admin'){
+// //     if(status === 'publish'){
 
-      const categories = await Category.find().populate('products');
-      res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
+// //       const categories = await Category.find().populate('products');
+// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
-    } else{ //unplish === 'true'
-      const categories = await Category.find().populate('products');
-      res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
+// //     } else{ //unplish === 'true'
+// //       const categories = await Category.find().populate('products');
+// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
-    }
+// //     }
+// //   } else if(req.user.role === 'user') { // req.user.role === 'user'
+ 
+// //     if(status === 'publish'){
 
-  } else { // req.user.role === 'user'
+// //       const categories = await Category.find().populate('products');
+// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
 
-    if(status === 'publish'){
+// //     } else{
+// //       return res.status(401).json({ success: false, error: 'Unauthorized' });
+// //     }
+// //   } else {
+// //     return res.status(401).json({ success: false, error: 'Unauthorized' });
+// //   }
+// // } catch (error) {
+// //   console.log(error);
+// //   res.status(500).json({ success: false, error: 'Server error' });
+// // }
+// try {
+//     let status = req.body.status ;
+//     if(req.user.role === 'admin'
+//      && status === 'publish'
+//       && status === 'unpublish'){
+//         const categoriesList = await Category.find(filter).populate('products');
+//         res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
+//       }
+//       else if(req.user.role === 'user' 
+//       && status === 'publish'){
+//         const categoriesList = await Category.find(filter).populate('products');
+//         res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
 
-      const categories = await Category.find().populate('products');
-      res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
-
-    } else{
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
-  }
-
-} catch (error) {
-  res.status(500).json({ success: false, error: 'Server error' });
-}
-
-  try {
-    let filter = {};
-    if (req.query.publish === 'true') {
-      // If publish=true and user is an admin, retrieve all categories, including those that are not published
-      if (req.user && req.user.role === 'admin') {
-        filter = {};
-      } else {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-      }
-    } else {
-      // If publish is not specified or is false, retrieve only published categories
-      filter = { published: true };
-    }
-    const categoriesList = await Category.find(filter).populate('products');
-    res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
-
-
-
+//       }
+//   } catch (error) {
+//     console.log(error)
+//     res.status(500).json({ success: false, error: 'Server error' });
+//   }
+// });
 
 // router.get("/category", async (req, res) => {
 
@@ -131,7 +169,6 @@ router.get("/category/:id",  async (req, res) => {
 
 
 
-
 //create a Category 
 router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
   try {
@@ -148,14 +185,15 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
           res.status(500).json({ success: false, error: "Server error" });
           return;
         }
+        let status ;
         const category = new Category({
           name: req.body.name,
           imageUrl: result.url,
-          // image: req.body.image
+          status: req.body.status 
         });
-
-        const newCategory = await category.save();
-        res.status(201).json({ success: true, data: newCategory });
+      
+          const newCategory = await category.save();
+          res.status(201).json({ success: true, data: newCategory });
       })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Server error' });
@@ -178,7 +216,9 @@ router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
     if (req.body.name) {
       category.name = req.body.name;
     }
-
+    if (req.body.status) {
+      category.status = req.body.status;
+    }
     // Update the category image if a new image is provided
     if (req.files && req.files.photo) {
       const file = req.files.photo;
