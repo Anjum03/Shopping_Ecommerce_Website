@@ -13,71 +13,39 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-
-
-
-// // Get all products in a category with paginaton
-router.get('/category/:categoryId/product', async (req, res) => {
+//   Get by all clothing product
+//view all category and product by publish data
+router.get("/category/:categoryId/product", async (req, res) => {
     try {
-
-        let filter = {};
-
-        const category = await Category.findById(req.params.categoryId).populate('products');
-        if (!category) {
-            return res.status(404).send({ error: 'Category not found' });
-        }
-
-        let products = category.products;
-
-        // Check if the "publish" flag is set to true
-        if (req.query.publish === 'true') {
-            // Filter the products to only include those that are published
-            filter = {};
-        } else{
-            filter = {published: true};
-        }
-
-        // Apply pagination
-        const qNew = req.query.new;
-        if (qNew) {
-            products = products.sort({ createdAt: -1 }).limit(10)
-        }
-        
-        // Return the filtered and paginated products
-        res.status(200).json({ success: true, data: products });
-
+      const status = req.query.status;
+  
+      let product;
+      if (status && status === 'publish') {
+        product = await Product.find({ status: 'publish' }).populate('products');
+      }
+      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
+  
     } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, error: 'Server error' });
+      res.status(500).json({ success: false, error: 'Server error' });
     }
-});
-
-// router.get('/category/:categoryId/product', async (req, res) => {
-//     try {
-//         const category = await Category.findById(req.params.categoryId).populate('products');
-//         if (!category) {
-//             return res.status(404).send({ error: 'Category not found' });
-//         }
-
-//         //pagination
-
-//         let products = category.products;
-
-//         const qNew = req.query.new;
-//         if (qNew) {
-//             products = products.sort({ createdAt: -1 }).limit(10)
-//         }
-
-//         res.status(200).json({ success: true, data: category.products });
-
-//     } catch (error) {
-//         res.status(500).json({ success: false, error: 'Server error' });
-//     }
-// });
+  });
+  
+  // GET /category - Get all categories
+  router.get("/category/:categoryId/products",verifyAdminToken, isAdmin,  async (req, res) => {
+    try {
+      
+      const product = await Product.find();
+      res.status(200).json({ success: true, message: `All Prodcut Here ..`, data: product });
+  
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  });
+  
 
 
 
-//   Get by ID clothing categories
+//   Get by ID clothing product
 router.get('/category/:categoryId/product/:productId', async (req, res) => {
     try {
 
@@ -182,7 +150,8 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
           age: req.body.age,
           discount: `${discountPercentage}%`, // Add the percentage symbol here
           price: price,
-          totalPrice: totalPrice
+          totalPrice: totalPrice,
+          status: req.body.status 
         });
         
         // Save the product to the database
@@ -269,6 +238,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 
         // Update the product fields
         product.name = req.body.name || product.name;
+        product.status = req.body.status || product.status;
         product.description = req.body.description || product.description;
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;

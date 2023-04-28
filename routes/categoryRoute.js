@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Category = require("../model/categoryModel");
 const cloudinary = require('cloudinary').v2;
-const  { verifyAdminToken, isAdmin, verifyUserToken, verifyToken, isAuthorized} = require('../middleware/token');
+const  { verifyAdminToken, isAdmin, } = require('../middleware/token');
 
 //config
 cloudinary.config({ 
@@ -185,7 +185,6 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
           res.status(500).json({ success: false, error: "Server error" });
           return;
         }
-        let status ;
         const category = new Category({
           name: req.body.name,
           imageUrl: result.url,

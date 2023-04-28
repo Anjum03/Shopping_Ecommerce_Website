@@ -70,6 +70,7 @@ router.post('/banner', verifyAdminToken, isAdmin, async (req, res) => {
             name: req.body.name,
             description: req.body.description,
             imageUrl: imageUrls,
+            status: req.body.status 
         });
 
         const newBanner = await banner.save();
@@ -143,6 +144,7 @@ router.put('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
         }
         // Update the banner fields
         banner.name = req.body.name || banner.name;
+        banner.status = req.body.status || banner.status;
         banner.description = req.body.description || banner.description;
         banner.imageUrl = newImageUrls || banner.imageUrl;
 
@@ -189,19 +191,33 @@ router.delete('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
 });
 
 
-
-//get all banner with pagination
+//view all banner by publish data
 router.get('/banner',  async(req,res)=>{
     try{
-        const banners = await Banner.find();
-        
-        const qNew = req.query.new ;
-        let banner  = banners;
-        if(qNew){
-           banner = banner.sort({createdAt: -1}).limit(10);
+        const status = req.query.status;
+
+        let banners ;
+        if( status && status === 'publish'){
+
+             banners = await Banner.find({ status: 'publish' });
         }
+
+        res.status(200).json({ success: true, data: banners});
+    }catch (error) {
+        console.log(error)
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+
+});
+
+
+
+//get all banner with pagination
+router.get('/banners',verifyAdminToken, isAdmin,  async(req,res)=>{
+    try{
+        const banner = await Banner.find();
+        res.status(200).json({ success: true, data: banner });
         
-        res.status(200).json({ success: true, data: banner});
     }catch (error) {
         res.status(500).json({ success: false, error: 'Server error' });
     }
