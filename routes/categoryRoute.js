@@ -55,117 +55,23 @@ router.get("/category/stats",  async (req, res) => {
 });
 
 
-//filter for any pproducts 
-// router.get('/category',  async (req, res) => {
-//   try {
-//     const { role } = req.user;
-//     const { status } = req.query;
-//     let filter = {};
-//     if (status === 'publish') {
-//       filter = { isPublished: true };
-//     } else if (status === 'unpublish') {
-//       filter = { isPublished: false };
-//     }
-//     if (role === 'admin') {
-//       const categoriesList = await Category.find(filter).populate('products');
-//       console.log(categoriesList);
-//       return res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
-//     } else {
-//       const categoriesList = await Category.find({ ...filter, isPublished: true }).populate('products');
-//       return res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     return res.status(500).json({ success: false, error: 'Server error' });
-//   }
-// });
-// router.get('/category', async (req, res) => {
-
-// // 1 .--> role = admin = show all categires and save in db 
-// //2. --> role = user (register user and no register user both can view)  = only published ittem can view
-// //3. --> publish = true = all categgories  shown tto user and admin
-// //4. --> unpublish = true = show  item to admin but not show ittem to user
-
-// // try{
-   
-// // const status = 'publish' ;
-// // console.log(req.user.role);
-
-// //   if(req.user.role === 'admin'){
-// //     if(status === 'publish'){
-
-// //       const categories = await Category.find().populate('products');
-// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
-
-// //     } else{ //unplish === 'true'
-// //       const categories = await Category.find().populate('products');
-// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
-
-// //     }
-// //   } else if(req.user.role === 'user') { // req.user.role === 'user'
- 
-// //     if(status === 'publish'){
-
-// //       const categories = await Category.find().populate('products');
-// //       res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
-
-// //     } else{
-// //       return res.status(401).json({ success: false, error: 'Unauthorized' });
-// //     }
-// //   } else {
-// //     return res.status(401).json({ success: false, error: 'Unauthorized' });
-// //   }
-// // } catch (error) {
-// //   console.log(error);
-// //   res.status(500).json({ success: false, error: 'Server error' });
-// // }
-// try {
-//     let status = req.body.status ;
-//     if(req.user.role === 'admin'
-//      && status === 'publish'
-//       && status === 'unpublish'){
-//         const categoriesList = await Category.find(filter).populate('products');
-//         res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
-//       }
-//       else if(req.user.role === 'user' 
-//       && status === 'publish'){
-//         const categoriesList = await Category.find(filter).populate('products');
-//         res.status(200).json({ success: true, message: 'All categories here.', data: categoriesList });
-
-//       }
-//   } catch (error) {
-//     console.log(error)
-//     res.status(500).json({ success: false, error: 'Server error' });
-//   }
-// });
-
-// router.get("/category", async (req, res) => {
-
-//   try {
-
-//     let filter = {};
-//     if (req.query.products ) {
-//       filter = { products: req.query.products.split(',') }
-//     }
-//     const categoriesList = await Category.find(filter).populate('products', );
-//     res.status(200).json({ success: true, message: `All Categories Here ..`, data: categoriesList });
-
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: 'Server error' });
-//   }
-// });
-
-
 //get by id
-router.get("/category/:id",  async (req, res) => {
+router.get("/category/:id", async (req, res) => {
   try {
-    const categories = await Category.findById(req.params.id).populate('products');
-    res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
-
+    const categoryId = req.params.id;
+    const category = await Category.findById(categoryId).populate('products');
+    
+    if (!category) {
+      return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
+    }
+    
+    res.status(200).json({ success: true, message: `Category found with id ${categoryId}`, data: category });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
+
 
 
 

@@ -48,26 +48,23 @@ router.get("/category/:categoryId/product", async (req, res) => {
 //   Get by ID clothing product
 router.get('/category/:categoryId/product/:productId', async (req, res) => {
     try {
-
-        // Get the category ID from the URL parameter
-        const { productId, categoryId } = req.params;
-
-        // Find the category in the database
-        const category = await Category.findById(categoryId);
-        const product = await Product.findById(productId);
-
-        if (!category || !product) {
-            return res.status(404).send({ error: 'Product or Category not found' });
-
-        }
-
-        res.status(200).json({ success: true, data: product });
-
+      const categoryId = req.params.categoryId;
+      const productId = req.params.productId;
+  
+      const category = await Category.findById(categoryId);
+      const product = await Product.findById(productId);
+  
+      if (!category || !product) {
+        return res.status(404).json({ success: false, error: `Category and Product not found with id ${categoryId} and ${productId}` });
+      }
+  
+      res.status(200).json({ success: true, data: product });
+  
     } catch (error) {
-        res.status(500).json({ success: false, error: 'Server error' });
+      res.status(500).json({ success: false, error: 'Server error' });
     }
-});
-
+  });
+  
 
 
 // Add a new product to a category

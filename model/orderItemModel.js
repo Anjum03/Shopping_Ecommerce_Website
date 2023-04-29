@@ -4,7 +4,7 @@ const orderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
   quantity:{type: Number},
   price:   {type: Number},
-  paymentMode: { type: String },
+  paymentMode: { type: String,  default: "pending",},
   status: {
     type: String,
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],

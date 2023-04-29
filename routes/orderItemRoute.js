@@ -57,6 +57,7 @@ router.put('/orderitem/:id',verifyUserToken, async (req, res) => {
       }
       orderItem.price = req.body.price,
       orderItem.quantity = req.body.quantity,
+      orderItem.paymentMode = req.body.paymentMode,
 
       res.send(orderItem);
     } catch (error) {
