@@ -125,9 +125,9 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             const product = await Product.findById(item.productId);
             existingTotalPrice += product.totalPrice * item.quantity;
           }
-          existingTotalPrice += product.totalPrice * req.body.quantity;
+          orderItem.totalPrice += product.totalPrice * req.body.quantity;
           // existingTotalPrice += product.totalPrice * quantity;
-          orderItem.totalPrice = existingTotalPrice;
+          // orderItem.totalPrice = existingTotalPrice;
 
           await orderItem.save(); // save updated order item // save updated order item
       }else {
