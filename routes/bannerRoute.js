@@ -70,7 +70,7 @@ router.post('/banner', verifyAdminToken, isAdmin, async (req, res) => {
             name: req.body.name,
             description: req.body.description,
             imageUrl: imageUrls,
-            status: req.body.status 
+           publish: req.body.publish
         });
 
         const newBanner = await banner.save();
@@ -144,7 +144,7 @@ router.put('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
         }
         // Update the banner fields
         banner.name = req.body.name || banner.name;
-        banner.status = req.body.status || banner.status;
+        banner.publish = req.body.publish || banner.publish;
         banner.description = req.body.description || banner.description;
         banner.imageUrl = newImageUrls || banner.imageUrl;
 
@@ -194,12 +194,11 @@ router.delete('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
 //view all banner by publish data
 router.get('/banner',  async(req,res)=>{
     try{
-        const status = req.query.status;
-
+let publish ;
         let banners ;
-        if( status && status === 'publish'){
+        if( publish === true ){
 
-             banners = await Banner.find({ status: 'publish' });
+             banners = await Banner.find({ publish: 'true' });
         }
 
         res.status(200).json({ success: true, data: banners});

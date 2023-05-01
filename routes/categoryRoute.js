@@ -18,15 +18,15 @@ cloudinary.config({
 //view all category by publish data
 router.get("/category", async (req, res) => {
   try {
-    const status = req.query.status;
-
+let publish ;
     let categories;
-    if (status && status === 'publish') {
-      categories = await Category.find({ status: 'publish' }).populate('products');
+    if (publish === true) {
+      categories = await Category.find({ publish: 'true' }).populate('products');
     }
     res.status(200).json({ success: true, message: `All Categories of Publish Data is Here ..`, data: categories });
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -95,7 +95,7 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
         const category = new Category({
           name: req.body.name,
           imageUrl: result.url,
-          status: req.body.status 
+          publish: req.body.publish
         });
       
           const newCategory = await category.save();
@@ -122,8 +122,8 @@ router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
     if (req.body.name) {
       category.name = req.body.name;
     }
-    if (req.body.status) {
-      category.status = req.body.status;
+    if (req.body.publish) {
+      category.publish = req.body.publish;
     }
     // Update the category image if a new image is provided
     if (req.files && req.files.photo) {

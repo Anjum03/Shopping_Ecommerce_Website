@@ -25,8 +25,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
     if (!cart) {
       // If cart doesn't exist for the user, create a new cart
       const newCart = new Cart({
-        userId: userId,
-        token: req.token,
+        userId: userId,  token: req.token,
         items: [
           {
             productId: productId,
@@ -46,7 +45,6 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             quantity: quantity,
           }],
         totalPrice: product.totalPrice * quantity,
-        // paymentMode: paymentMode,
       })
       await newOrderItem.save();
       // }
@@ -58,8 +56,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
       if (cart.token !== req.token) {
         // If the token belongs to a different user, create a new cart
         const newCart = new Cart({
-          userId: userId,
-          token: req.token,
+          userId: userId,  token: req.token,
           items: [
             {
               productId: productId,
@@ -71,15 +68,14 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         await newCart.save();
         // Create a new order item
         const newOrderItem = new OrderItem({
-          userId: userId,
-          token: req.token,
+          userId: userId,  token: req.token,
           items: [
             {
               productId: productId,
               quantity: quantity,
             }
           ],
-          totalPrice: product.totalPrice * quantity,
+          totalPrice: product.totalPrice * req.body.quantity,
         });
         await newOrderItem.save();
         res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId, OrderItem: newOrderItem } });
@@ -197,6 +193,8 @@ router.put('/cart/:id', verifyUserToken, async (req, res) => {
 
 
 //delete Cart
+
+//delete Cart
 router.delete('/cart/:id', verifyUserToken, async (req, res) => {
 
   const itemId = req.params.id;
@@ -210,31 +208,38 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
     if (!cart) {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
-
+    
     const item = cart.items.find(item => item._id.equals(itemId));
     if (!item) {
       return res.status(404).json({ success: false, message: 'Item not found in cart' });
     }
-
+    
     // Remove the item from the cart
     cart.items.pull(itemId);
-
-    // Recalculate the total price of the cart
-    const product = await Product.findById(item.productId);
-    cart.totalPrice -= product.totalPrice * item.quantity;
-
-    // Save the changes to the cart
+    
+    
+      // Recalculate the total price of the cart
+      
+      const product = await Product.findById(item.productId);
+      cart.totalPrice -= product.totalPrice * item.quantity;
+      // Update the total price of the OrderItem document
+     const orderItem = await OrderItem.deleteOne({
+        userId: userId,
+        // items: product.productId
+        // productId: item.productId,
+      });
+        // orderItem.totalPrice -= product.totalPrice * product.quantity;
+     console.log(orderItem)
+     // if (!orderItem) {
+    
     const deleteCart = await cart.save();
-
-    // Delete the corresponding OrderItem entry from the database
-    await OrderItem.deleteOne({ userId, productId: item.productId });
-
-    res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart });
+    // const deleteOrde = await orderItem.save();
+    res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart, orderItem});
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
-
 });
 
 

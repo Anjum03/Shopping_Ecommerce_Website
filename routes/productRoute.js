@@ -17,11 +17,10 @@ cloudinary.config({
 //view all category and product by publish data
 router.get("/category/:categoryId/product", async (req, res) => {
     try {
-      const status = req.query.status;
-  
+let publish ;  
       let product;
-      if (status && status === 'publish') {
-        product = await Product.find({ status: 'publish' });
+      if (publish === true) {
+        product = await Product.find({ publish: 'true' });
       }
       res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
   
@@ -149,7 +148,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
           discount: `${discountPercentage}%`, // Add the percentage symbol here
           price: price,
           totalPrice: totalPrice,
-          status: req.body.status 
+          publish: req.body.publish 
         });
         
         // Save the product to the database
@@ -236,7 +235,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 
         // Update the product fields
         product.name = req.body.name || product.name;
-        product.status = req.body.status || product.status;
+        product.publish = req.body.publish || product.publish;
         product.description = req.body.description || product.description;
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;

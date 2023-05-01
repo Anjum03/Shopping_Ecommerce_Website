@@ -13,10 +13,8 @@ const categorySchema = new mongoose.Schema({
   populate: {
     path: 'price'
   }}],
-  status: {
-    type: String,
-    enum: ["publish", "unpublish", ],
-    default: "unpublish",
+  publish: {
+    type: Boolean,
   },
   
 },{timestamps: true});

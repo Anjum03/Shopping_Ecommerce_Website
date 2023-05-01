@@ -19,11 +19,9 @@ const productSchema = new mongoose.Schema({
     discount:{ type: String },
     price:{ type: Number },
     totalPrice:{ type: Number },
-    status: {
-        type: String,
-        enum: ["publish", "unpublish", ],
-        default: "unpublish",
-      },
+    publish: {
+      type: Boolean,
+    },
 },{timestamps: true}
 );
 
