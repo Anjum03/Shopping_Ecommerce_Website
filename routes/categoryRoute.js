@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Category = require("../model/categoryModel");
+const Product = require("../model/productModel");
 const cloudinary = require('cloudinary').v2;
 const  { verifyAdminToken, isAdmin, } = require('../middleware/token');
 
@@ -175,9 +176,10 @@ router.delete("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
     }
 
     await category.deleteOne();
-    await Product.deleteMany({ category: categoryId });
+    await Product.deleteOne({ category: categoryId });
     res.status(200).json({ success: true, data: category });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: "Server error" });
   }
 });

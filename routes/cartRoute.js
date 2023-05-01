@@ -105,42 +105,48 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         }
         cart.totalPrice += product.totalPrice * req.body.quantity;
 
-        // const  orderItem = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
-        let existingOrderItem = await OrderItem.findOne({ userId: userId, });
-        if (existingOrderItem) {
-          const itemToUpdate = existingOrderItem.productId.find(item => item.productId.equals(productId));
-          if (itemToUpdate) {
+        const  orderItem = await OrderItem.findOne({ userId: userId }); // search cart by userId instead of token
+        if (orderItem) {
+          // If an order item already exists for the user, update it
+          if (orderItem.items.find(item => item.productId.equals(productId))) {
+            const itemToUpdate = orderItem.items.find(item => item.productId.equals(productId));
             itemToUpdate.quantity += quantity;
-            itemToUpdate.totalPrice += product.totalPrice * quantity;
+
           } else {
-            existingOrderItem.productId.push({
-              productId: productId,
-              quantity: quantity,
-              price: product.totalPrice,
-              totalPrice: product.totalPrice * quantity,
-              paymentMode: paymentMode
-            });
+            const newItem = {
+              productId,
+              quantity,
+            };
+            orderItem.items.push(newItem);
           }
-          await existingOrderItem.save();
-          res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId, OrderItem: existingOrderItem } });
-        } else {
-          const newOrderItem = new OrderItem({
-            productId: [{
-              productId: productId,
-              quantity: quantity,
-              price: product.totalPrice,
-              totalPrice: product.totalPrice * quantity,
-              paymentMode: paymentMode,
-            }],
-          });
-          await newOrderItem.save();
-          res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId, OrderItem: newOrderItem } });
-        }
-        await cart.save();
-    res.status(200).json({ success: true, message: 'Existing product added to cart', data: { cart: cart, userId: userId, OrderItem: orderItem } });
-      console.log(   `odeiem`,orderItem)
-    }}
+          let existingTotalPrice = 0;
+          for (let i = 0; i < orderItem.items.length; i++) {
+            const item = orderItem.items[i];
+            const product = await Product.findById(item.productId);
+            existingTotalPrice += product.totalPrice * item.quantity;
+          }
+          existingTotalPrice += product.totalPrice * req.body.quantity;
+          // existingTotalPrice += product.totalPrice * quantity;
+          orderItem.totalPrice = existingTotalPrice;
+
+          await orderItem.save(); // save updated order item // save updated order item
+      }else {
+        // If no order item exists for the user, create a new one
+        const newOrderItem = new OrderItem({
+          userId: userId,
+          items: [{
+            productId: productId,
+            quantity: quantity,
+          }],
+          totalPrice: product.totalPrice * quantity,
+        });
+        await newOrderItem.save();
+      }
     
+    }
+    await cart.save();
+    res.status(200).json({ success: true, message: 'Existing product added to cart', data: { cart: cart, userId: userId, OrderItem: orderItem } });
+    }
   }
   catch (error) {
     console.log(error);
