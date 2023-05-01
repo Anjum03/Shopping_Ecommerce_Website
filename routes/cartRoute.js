@@ -69,7 +69,6 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           totalPrice: product.totalPrice * req.body.quantity,
         });
         await newCart.save();
-        // If cart already exists for the user, update the cart with the new product and quantity
         // Create a new order item
         const newOrderItem = new OrderItem({
           userId: userId,
@@ -78,7 +77,6 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             {
               productId: productId,
               quantity: quantity,
-              // paymentMode: paymentMode,
             }
           ],
           totalPrice: product.totalPrice * quantity,
@@ -105,7 +103,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         }
         cart.totalPrice += product.totalPrice * req.body.quantity;
 
-        const  orderItem = await OrderItem.findOne({ userId: userId }); // search cart by userId instead of token
+        const orderItem = await OrderItem.findOne({ userId: userId }); // search cart by userId instead of token
         if (orderItem) {
           // If an order item already exists for the user, update it
           if (orderItem.items.find(item => item.productId.equals(productId))) {
@@ -126,26 +124,22 @@ router.post('/cart', verifyUserToken, async (req, res) => {
             existingTotalPrice += product.totalPrice * item.quantity;
           }
           orderItem.totalPrice += product.totalPrice * req.body.quantity;
-          // existingTotalPrice += product.totalPrice * quantity;
-          // orderItem.totalPrice = existingTotalPrice;
-
-          await orderItem.save(); // save updated order item // save updated order item
-      }else {
-        // If no order item exists for the user, create a new one
-        const newOrderItem = new OrderItem({
-          userId: userId,
-          items: [{
-            productId: productId,
-            quantity: quantity,
-          }],
-          totalPrice: product.totalPrice * quantity,
-        });
-        await newOrderItem.save();
+          await orderItem.save(); // save updated order item 
+        } else {
+          // If no order item exists for the user, create a new one
+          const newOrderItem = new OrderItem({
+            userId: userId,
+            items: [{
+              productId: productId,
+              quantity: quantity,
+            }],
+            totalPrice: product.totalPrice * quantity,
+          });
+          await newOrderItem.save();
+        }
       }
-    
-    }
-    await cart.save();
-    res.status(200).json({ success: true, message: 'Existing product added to cart', data: { cart: cart, userId: userId, OrderItem: orderItem } });
+      await cart.save();
+      res.status(200).json({ success: true, message: 'Existing product added to cart', data: { cart: cart, userId: userId, orderItem} });
     }
   }
   catch (error) {
