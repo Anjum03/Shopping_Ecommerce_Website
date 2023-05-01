@@ -21,6 +21,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
     }
 
     const cart = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
+    const orderItem = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
     if (!cart) {
       // If cart doesn't exist for the user, create a new cart
       const newCart = new Cart({
@@ -36,35 +37,21 @@ router.post('/cart', verifyUserToken, async (req, res) => {
       });
       await newCart.save();
 
-      // Create a new order with the cart items
-      // const newOrder = new OrderItem({
-      //   userId: userId,
-      //   items: newCart.items,
-      //   totalPrice: newCart.totalPrice,
-      //   status: 'pending',
-      // });
-      // await newOrder.save();
-
-      // Create a new order item
-      // const newOrderItem = new OrderItem({
-      //   // orderId: newOrder._id,
-      //   productId: productId,
-      //   quantity: quantity,
-      //   price: product.totalPrice,
-      //   totalPrice: product.totalPrice * quantity,
-      // });
+      // if(!orderItem){
       const newOrderItem = new OrderItem({
-        productId: [{
-          productId: productId,
-          quantity: quantity,
-          price: product.totalPrice,
-          totalPrice: product.totalPrice * quantity,
-          paymentMode: paymentMode,
-        }],
+        userId: userId, token: req.token,
+        items: [
+          {
+            productId: productId,
+            quantity: quantity,
+          }],
+        totalPrice: product.totalPrice * quantity,
+        // paymentMode: paymentMode,
       })
       await newOrderItem.save();
+      // }
 
-      res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+      res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId, newOrderItem: newOrderItem } });
     }
     else {
       // If cart already exists for the user, update the cart with the new product and quantity
@@ -82,20 +69,22 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           totalPrice: product.totalPrice * req.body.quantity,
         });
         await newCart.save();
-
+        // If cart already exists for the user, update the cart with the new product and quantity
         // Create a new order item
         const newOrderItem = new OrderItem({
-          productId: [{
-            productId: productId,
-            quantity: quantity,
-            price: product.totalPrice,
-            totalPrice: product.totalPrice * quantity,
-            paymentMode: paymentMode,
-          }],
+          userId: userId,
+          token: req.token,
+          items: [
+            {
+              productId: productId,
+              quantity: quantity,
+              // paymentMode: paymentMode,
+            }
+          ],
+          totalPrice: product.totalPrice * quantity,
         });
         await newOrderItem.save();
-
-        res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId } });
+        res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: newCart, userId: userId, OrderItem: newOrderItem } });
       } else {
         // If the token belongs to the same user, update the existing cart
         if (cart.items.find(item => item.productId.equals(productId))) {
@@ -116,22 +105,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
         }
         cart.totalPrice += product.totalPrice * req.body.quantity;
 
-        // Update the existing order item or create a new one
-        // if (existingOrderItem) {
-        //   existingOrderItem.quantity += quantity;
-        //   existingOrderItem.price = product.totalPrice;
-        //   const updateExistingOrderItem = await existingOrderItem.save();
-        //   res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId, OrderItem: updateExistingOrderItem } });
-        // }
-
-        // let existingOrderItem = await OrderItem.findOne({ userId: userId, });
-        // if (existingOrderItem.productId.find
-        //   (productId => productId.productId.equals(productId))) {
-        //   const findExistOrderItem = existingOrderItem.productId.find
-        //     (productId => productId.productId.equals(productId))
-        //     findExistOrderItem.quantity += quantity ;
-        //     findExistOrderItem.totalPrice += product.totalPrice ;
-        // }
+        // const  orderItem = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
         let existingOrderItem = await OrderItem.findOne({ userId: userId, });
         if (existingOrderItem) {
           const itemToUpdate = existingOrderItem.productId.find(item => item.productId.equals(productId));
@@ -163,10 +137,12 @@ router.post('/cart', verifyUserToken, async (req, res) => {
           res.status(200).json({ success: true, message: 'New product added to cart', data: { cart: cart, userId: userId, OrderItem: newOrderItem } });
         }
         await cart.save();
-      }
-    }
-
-  } catch (error) {
+    res.status(200).json({ success: true, message: 'Existing product added to cart', data: { cart: cart, userId: userId, OrderItem: orderItem } });
+      console.log(   `odeiem`,orderItem)
+    }}
+    
+  }
+  catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: 'Server Error', data: error });
   }

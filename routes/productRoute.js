@@ -21,11 +21,12 @@ router.get("/category/:categoryId/product", async (req, res) => {
   
       let product;
       if (status && status === 'publish') {
-        product = await Product.find({ status: 'publish' }).populate('products');
+        product = await Product.find({ status: 'publish' });
       }
       res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
   
     } catch (error) {
+        console.log(error)
       res.status(500).json({ success: false, error: 'Server error' });
     }
   });
@@ -329,6 +330,7 @@ router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAd
         res.status(200).json({ success: true, data: 'Product removed from category successfully' });
 
     } catch (error) {
+        console.log(error)
         res.status(500).json(error);
     }
 });

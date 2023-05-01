@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
-  quantity:{type: Number},
-  price:   {type: Number},
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
+  items: [
+    {
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
+      quantity: { type: Number,  },
+      price: { type: Number,  },
+    }
+  ],
+  totalPrice: { type: Number, default: 0 },
   paymentMode: { type: String,  default: "pending",},
   status: {
     type: String,
