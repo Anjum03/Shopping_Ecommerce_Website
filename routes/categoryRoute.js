@@ -20,7 +20,7 @@ router.get("/category", async (req, res) => {
   try {
 let publish ;
     let categories;
-    if (publish === true) {
+    if (publish = true) {
       categories = await Category.find({ publish: 'true' }).populate('products');
     }
     res.status(200).json({ success: true, message: `All Categories of Publish Data is Here ..`, data: categories });

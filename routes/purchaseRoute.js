@@ -115,13 +115,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       const remainingQuantity = item.quantity;
       const remainingTotalPrice = remainingQuantity * item.productId.totalPrice;
 
-      // Remove the item from the cart if the purchased quantity is equal to the cart quantity
-      // if (item.quantity === 0) {
-      //   cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
-      // }
-
-      // await cart.save();
-
       res.status(200).json({
         success: true, message: `Purchase Created...`, data: {
           purchase: purchase,
