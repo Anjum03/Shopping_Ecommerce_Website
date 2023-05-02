@@ -24,7 +24,7 @@ router.post('/email', async (req, res) => {
   const whatsapp = req.body.whatsapp;
   const size = req.body.size;
   const color = req.body.color;
-  const newQuery = req.body.newQuery;
+  // const newQuery = req.body.newQuery;
   const stockAvailability = req.body.stockAvailability;
   const status = "OPEN"
   const message = req.body.message;
@@ -48,7 +48,7 @@ router.post('/email', async (req, res) => {
     return res.status(404).json({ message: `${!product ? 'Product' : 'Category'} not found` });
   }
   const query = new HelpArticle({
-    user_id, product_id, category_id, Name, Email, whatsapp, size,newQuery, stockAvailability,color,
+    user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability,color,
     status: 'Open',
   });
   await query.save()
@@ -97,7 +97,6 @@ router.post('/email', async (req, res) => {
             message: message,
             size: size,
             color:color,
-            newQuery: newQuery,
             stockAvailability: stockAvailability,
             status: "OPEN"
 
