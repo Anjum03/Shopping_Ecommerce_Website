@@ -238,10 +238,9 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
 router.get('/cart', verifyUserToken, async (req, res) => {
 
   try {
-    userId = req.user._id
-
+    userId = req.user.id
     // Find the cart for the user
-    const cart = await Cart.findOne(userId)
+    const cart = await Cart.findOne({userId})
 
     if (!cart) {
       return res.status(400).json({ success: false, message: 'Cart not found' });
@@ -261,9 +260,18 @@ router.get('/cart', verifyUserToken, async (req, res) => {
       }
     }
 
-    res.status(200).json({ success: true, message: `All Cart Here ..`, data: { items, totalPrice: cart.totalPrice } });
+    // res.status(200).json({ success: true, message: `All Cart Here ..`, data: { items, totalPrice: cart.totalPrice } });
+    res.status(200).json({
+      success: true,
+      message: `User's cart:`,
+      data: { 
+        items, 
+        totalPrice: cart.totalPrice, 
+      }
+    });
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
 
   }

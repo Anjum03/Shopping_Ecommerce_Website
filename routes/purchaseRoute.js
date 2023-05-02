@@ -6,12 +6,11 @@ const router = express.Router();
 const Purchase = require("../model/purchaseModel");
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
 const Cart = require("../model/cartModel");
-const OrderItem = require("../model/orderItemModel");
 
 
 
 //purchase order all record 
-router.get('/purchase', verifyAdminToken, isAdmin, async (req, res) => {
+router.get('/purchase',verifyUserToken,verifyAdminToken ,async (req, res) => {
   try {
     const purchases = await Purchase.find({}).populate('items.productId');
     if (!purchases) {
@@ -42,16 +41,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       // handle the case where the cart is not found
       return res.status(404).json({ message: "Cart not found" });
     }
-    // console.log(cart.items[0].orderItem.productId.name);
-    // console.log(cart)
-
-    // const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
-    // console.log(cart.items[0].orderItem.productId.name);
-    // console.log(cart)
-
-    // if (!cart || !cart.items || cart.items.length === 0) {
-    //   return res.status(400).json({ success: false, message: 'Cart is empty' });
-    // }
 
     // Find the item to be purchased
     const productId = req.body.productId;
@@ -70,16 +59,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
     // Calculate the total price of the item
     const totalPrice = quantity * item.productId.totalPrice;
 
-    // create a new order item
-    const orderItem = new OrderItem({
-      productId: item.productId._id,
-      quantity: quantity,
-      price: item.productId.totalPrice,
-      paymentMode: req.body.paymentMode
-    });
-
-    await orderItem.save();
-
     // Check if the item has already been purchased
     const existingPurchase = await Purchase.findOne({
       userId,
@@ -96,43 +75,13 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       // Remove the purchased item from the cart
       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
 
-      // Remove the order item from the database
-      await OrderItem.findOneAndDelete({ _id: orderItem._id });
-
       await cart.save();
-
-
-
-      // // Create a new order item
-      // const orderItem = new OrderItem({
-      //   productId: item.productId._id,
-      //   quantity: quantity,
-      //   totalPrice: totalPrice,
-      // });
-
-      // await orderItem.save();
-
-      // // Update the purchased quantity and total price in the cart
-      // item.quantity -= quantity;
-      // cart.totalPrice -= totalPrice;
-
-      // // Calculate the remaining quantity and total price of the item in the cart
-      // const remainingQuantity = item.quantity;
-      // const remainingTotalPrice = remainingQuantity * item.productId.price;
-
-      // // Remove the item from the cart if the purchased quantity is equal to the cart quantity
-      // if (item.quantity === 0) {
-      //   cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
-      // }
-
-      // await cart.save();
 
       res.status(200).json({
         success: true, message: 'Purchase updated', data: {
           purchase: existingPurchase,
           remainingQuantity: remainingQuantity,
           remainingTotalPrice: remainingTotalPrice,
-          orderItem: orderItem,
         }
       });
     } else {
@@ -141,7 +90,10 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       // Create a new purchase record
       const purchase = new Purchase({
         userId: req.user._id,
-        items: [orderItem._id],
+        items: [{
+          productId: productId,
+          quantity: quantity,
+        }],
         totalPrice: totalPrice,
         createdAt: new Date(),
       });
@@ -151,8 +103,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       // Remove the purchased item from the cart
       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
 
-      // Remove the order item from the database
-      await OrderItem.findOneAndDelete({ _id: orderItem._id });
 
       // Save the changes to the cart
       await cart.save();
@@ -175,7 +125,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       res.status(200).json({
         success: true, message: `Purchase Created...`, data: {
           purchase: purchase,
-          orderItem: orderItem,
           remainingQuantity: remainingQuantity,
           remainingTotalPrice: remainingTotalPrice,
         }
@@ -260,7 +209,7 @@ router.get('/purchase/totalSale', verifyAdminToken, isAdmin, async (req, res) =>
 
 
 // //order Count
-router.get('/purchase/count', async (req, res) => {
+router.get('/purchase/count',verifyAdminToken, isAdmin, async (req, res) => {
 
   try {
 

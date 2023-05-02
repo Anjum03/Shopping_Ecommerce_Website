@@ -2,11 +2,22 @@ const mongoose = require('mongoose');
 
 const purchaseSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
-  items: [  { type: mongoose.Schema.Types.ObjectId, ref: 'OrderItem',  } ],
+  items: [  {
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
+    quantity: { type: Number,  },
+    price: { type: Number,  },
+  } ],
   totalPrice: { type: Number,  },
-  createdAt: { type: Date, default: Date.now },
+  paymentMode: { type: String,  default: "pending",},
+  status: {
+    type: String,
+    enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+    default: "pending",
+  },
    
-});
+},
+{timestamps: true}
+);
 
 const Purchase = mongoose.model('Purchase', purchaseSchema);
 

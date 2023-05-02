@@ -10,12 +10,7 @@ const orderItemSchema = new mongoose.Schema({
     }
   ],
   totalPrice: { type: Number, default: 0 },
-  paymentMode: { type: String,  default: "pending",},
-  status: {
-    type: String,
-    enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
-    default: "pending",
-  },
+ 
 });
 
 const OrderItem = mongoose.model('OrderItem', orderItemSchema);
