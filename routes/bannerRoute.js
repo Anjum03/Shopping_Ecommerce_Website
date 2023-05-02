@@ -196,7 +196,7 @@ router.get('/banner',  async(req,res)=>{
     try{
 let publish ;
         let banners ;
-        if( publish === true ){
+        if( publish = true ){
 
              banners = await Banner.find({ publish: 'true' });
         }

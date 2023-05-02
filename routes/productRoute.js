@@ -19,7 +19,7 @@ router.get("/category/:categoryId/product", async (req, res) => {
     try {
 let publish ;  
       let product;
-      if (publish === true) {
+      if (publish = true) {
         product = await Product.find({ publish: 'true' });
       }
       res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
