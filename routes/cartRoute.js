@@ -214,27 +214,17 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Item not found in cart' });
     }
     
+      // Recalculate the total price of the cart
     // Remove the item from the cart
     cart.items.pull(itemId);
     
-    
-      // Recalculate the total price of the cart
       
       const product = await Product.findById(item.productId);
       cart.totalPrice -= product.totalPrice * item.quantity;
       // Update the total price of the OrderItem document
-     const orderItem = await OrderItem.deleteOne({
-        userId: userId,
-        // items: product.productId
-        // productId: item.productId,
-      });
-        // orderItem.totalPrice -= product.totalPrice * product.quantity;
-     console.log(orderItem)
-     // if (!orderItem) {
     
     const deleteCart = await cart.save();
-    // const deleteOrde = await orderItem.save();
-    res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart, orderItem});
+    res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart,});
 
   } catch (error) {
     console.log(error)
