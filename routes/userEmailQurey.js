@@ -31,7 +31,7 @@ router.post('/email', async (req, res) => {
 
 
   // Check if all required fields are provided
-  if (!user_id || !product_id || !category_id || !Name || !Email || !whatsapp || !size || !stockAvailability || !status) {
+  if (!user_id || !product_id || !category_id || !Name || !Email || !whatsapp || !message || !size || !stockAvailability || !status) {
     return res.status(400).json({ message: 'Please provide all required fields' });
   }
 
@@ -48,7 +48,7 @@ router.post('/email', async (req, res) => {
     return res.status(404).json({ message: `${!product ? 'Product' : 'Category'} not found` });
   }
   const query = new HelpArticle({
-    user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability,color,
+    user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability,color,message,
     status: 'Open',
   });
   await query.save()
