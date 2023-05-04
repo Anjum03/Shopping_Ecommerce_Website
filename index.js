@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 const app = require("express")();
-const PORT = process.env.PORT  || 4000;
+const PORT = process.env.PORT || 4000;
 
 //using DB
 const connectDB = require('./db/connection');
@@ -12,7 +12,7 @@ connectDB();
 //using cloudinary
 const fileUpload = require('express-fileupload');
 app.use(fileUpload({
-    useTempFiles:true
+    useTempFiles: true
 }))
 
 
@@ -24,7 +24,7 @@ app.use(cors());
 //using body-parser
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended:true }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //using routes
 const adminRoute = require("./routes/adminRoute");
@@ -42,6 +42,9 @@ app.use('/', purchaseRoute);
 const userRoute = require("./routes/userRoute");
 app.use('/', userRoute);
 
+const notificationRoute = require("./routes/whatsAppNotification");
+app.use('/', notificationRoute);
+
 const userQueryRoute = require("./routes/userEmailQurey");
 app.use('/', userQueryRoute);
 
@@ -51,6 +54,16 @@ app.use('/', cartRoute);
 const bannerRoute = require("./routes/bannerRoute");
 app.use('/', bannerRoute);
 
-app.listen(PORT, ()=>{
+
+// app.get('/webhook', (req, res) => {
+
+//     let mode =  req.query["hub.mode"];
+//     let challenge =  req.query["hub.challenge"];
+//     let token =  req.query["hub.verify_token"];
+
+// });
+
+
+app.listen(PORT, () => {
     console.log(`Server is Started.... :)`)
 })

@@ -130,7 +130,7 @@ router.post('/email', async (req, res) => {
 
 
 //Admin query for help center articles
-router.get('/email', verifyAdminToken,isAdmin  ,async (req, res) => {
+router.get('/email',async (req, res) => {
 
   try {
 
