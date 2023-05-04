@@ -16,7 +16,8 @@
     "uuidv4": "^6.2.13",
     "wbm": "^1.1.16",
     "whatsapp-business-api": "^0.0.4",
-    "whatsapp-web.js": "^1.19.5"
+    "whatsapp-web.js": "^1.19.5",
+    "whatsappcloudapi_wrapper": "^1.0.13"
   },
   "name": "journey-3",
   "version": "1.0.0",

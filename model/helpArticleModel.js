@@ -3,10 +3,9 @@
 const mongoose = require('mongoose');
 
 const helpArticlesSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-
-  product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
+  product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category',  },
 
   Name: String,
   Email: String,
@@ -14,7 +13,7 @@ const helpArticlesSchema = new mongoose.Schema({
   size: String,
   message: String,
   color: String,
-  newQuery:{type: String},
+  // newQuery:{type: String},
   stockAvailability: Number,
   status: { type: String, enum: ['Open', 'Answered', 'Closed'], default: 'Open' },
 

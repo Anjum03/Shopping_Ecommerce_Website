@@ -7,13 +7,21 @@ const  Notification = require('../model/notificationModel');
 const router = express.Router();
 const { verifyAdminToken, isAdmin, } = require('../middleware/token');
 
-const WhatsappAPI = require('whatsapp-business-api');
+// const WhatsappAPI = require('whatsapp-business-api');
+const WhatsappCloudAPI = require('whatsappcloudapi_wrapper');
+
+const wp = new WhatsappCloudAPI({
+    accessToken:'EAAN6zzI7ig8BAPZAx6FakraHoJWcYv3OK3p50qAbT4Upg6b5fXFk8IZB0brrPsxlYXaK8ZBqqsQiaU1YozvKMYJOUBOnmZCmgFZCbZByj2c9UmfVSW9mvhfzQA3s9wYiix6V2LiGtCRrB2QiqkH1UeIbZCy9wZC1OIyuiW1s9SxBjAgOhgv85q4H3A81CDrBVnvuMiwWRNcPDdIEkUkhnAKgnjDiXCBABz4ZD'
+    ,//'Your access token here',
+    senderPhoneNumberId:   109394125482979   ,// 'Your sender phone number id here',
+    WABA_ID:  118326417915153  //'Your Whatsapp Business Account id here',
+});
 
 // Initialize the Express app and the WhatsApp Business API client
-const wp = new WhatsappAPI({
-    accountPhoneNumberId: '109394125482979',
-    accessToken: 'EAAN6zzI7ig8BAMCrUBKFnFlj6n8KQ25BBKXUNB4l2aLZA94EvgTGgnx0aY7XC1201W2OeozRDVrMJRviZB5rCSLynkqNSGZBcttjGFCqqG3gZCJIoKGNDDrZBjqNPaPrKhsZAqLXV53FPHZAxFlISQVnmev3Ri1yOhD0PBpFGuiL5tq66UqGmyx2DixHgQq9UNpbZCA5ZBVALyGEwyy0Luh0eOnbqHpG7n2bCjA1xZBLyvHwZDZD'
-});
+// const wp = new WhatsappAPI({
+//     accountPhoneNumberId: '109394125482979',
+//     accessToken: 'EAAN6zzI7ig8BAMCrUBKFnFlj6n8KQ25BBKXUNB4l2aLZA94EvgTGgnx0aY7XC1201W2OeozRDVrMJRviZB5rCSLynkqNSGZBcttjGFCqqG3gZCJIoKGNDDrZBjqNPaPrKhsZAqLXV53FPHZAxFlISQVnmev3Ri1yOhD0PBpFGuiL5tq66UqGmyx2DixHgQq9UNpbZCA5ZBVALyGEwyy0Luh0eOnbqHpG7n2bCjA1xZBLyvHwZDZD'
+// });
 
 // Define an API endpoint that sends a message to all registered users
 router.post('/send', async (req, res) => {

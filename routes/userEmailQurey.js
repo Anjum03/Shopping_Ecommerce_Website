@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 const mailgen = require('mailgen');
 const Category = require('../model/categoryModel');
 const Product = require('../model/productModel');
+const User = require('../model/userModel');
 const HelpArticle = require('../model/helpArticleModel');
 const { verifyAdminToken, isAdmin } = require('../middleware/token');
 
@@ -30,17 +31,16 @@ router.post('/email', async (req, res) => {
   const message = req.body.message;
 
 
-  // Check if all required fields are provided
-  if (!user_id || !product_id || !category_id || !Name || !Email || !whatsapp || !message || !size || !stockAvailability || !status) {
-    return res.status(400).json({ message: 'Please provide all required fields' });
-  }
+ // Check if all required fields are provided
+ if (!user_id || !product_id || !category_id || !Name || !Email || !whatsapp || !message || !size || !stockAvailability || !status) {
+  return res.status(400).json({ message: 'Please provide all required fields' });
+}
 
-  //         // Find the product and category
-
+ 
   // Find the product and category
-  const product = await Product.findById(product_id);
-  const category = await Category.findById(category_id);
-
+  const product = await Product.findById(product_id).select('name');
+  const user = await User.findById(user_id).select('firstName');
+  const category = await Category.findById(category_id).select('name');
 
   // Check if product and category exist
 
@@ -54,9 +54,26 @@ router.post('/email', async (req, res) => {
   await query.save()
     .then(() => {
       // Send email code here
-      res.status(200).json({ success: true, data: query, message: `Sent !!!` });
+      res.status(200).json({ success: true, data: {
+        user_name: user.firstName,
+        product_name: product.name,
+        category_name: category.name,
+        Name: query.Name,
+        Email: query.Email,
+        whatsapp: query.whatsapp,
+        size: query.size,
+        color: query.color,
+        message: query.message,
+        stockAvailability: query.stockAvailability,
+        status: 'Open',
+        _id: query._id,
+        createdAt: query.createdAt,
+        updatedAt: query.updatedAt,
+        __v: query.__v
+      }, message: `Sent !!!` });
     })
     .catch((error) => {
+      console.log(error)
       res.status(500).json({ success: false, data: error });
     });
 
@@ -87,17 +104,15 @@ router.post('/email', async (req, res) => {
           {
             //-----change 
 
-            user_id: user_id,
-            product_id: product_id,
-            category_id: category_id,
-
-            Name: Name,
-            Email: Email,
-            whatsapp: whatsapp,
+            user_name: Name,
+            user_email: Email,
+            user_whatsapp: whatsapp,
+            category_name: category.name,
+            product_name: product.name,
             message: message,
             size: size,
-            color:color,
-            stockAvailability: stockAvailability,
+            color: color,
+            stock_availability: stockAvailability,
             status: "OPEN"
 
           }
@@ -130,7 +145,7 @@ router.post('/email', async (req, res) => {
 
 
 //Admin query for help center articles
-router.get('/email',async (req, res) => {
+router.get('/email',  verifyAdminToken, isAdmin , async (req, res) => {
 
   try {
 
@@ -144,5 +159,36 @@ router.get('/email',async (req, res) => {
 });
 
 
+
+router.get('/email/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select('firstName');
+
+    const helpArticle = await HelpArticle.find({ user_id: userId }).populate('product_id', 'name').populate('category_id', 'name');
+    res.status(200).json({ success: true, message: `User's First Name`, 
+    data: { User: user.firstName, helpArticle }});
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, data: error });
+  }
+});
+
+
+
+// delete
+//delete helpArticle  record
+router.delete('/email/:id',  async (req, res) => {
+  try {
+   const helpId = req.params.id
+    const helpArticle = await HelpArticle.findByIdAndDelete(helpId);
+    if (!helpArticle) {
+      return res.status(404).json({success: false, data: `No Email Found` });
+    }
+    return res.status(200).json({ success: true, message: 'The order is deleted!', data: helpArticle });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
 
 module.exports = router;
