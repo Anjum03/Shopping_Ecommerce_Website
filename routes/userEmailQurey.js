@@ -203,9 +203,7 @@ const emailBody = {
       data: [
         {
           //-----change 
-          adminEmail:adminEmail,
           adminReply: adminReply,
-          status: "CLOSED"
 
         }
       ]

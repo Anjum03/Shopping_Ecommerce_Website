@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Purchase = require("../model/purchaseModel");
+const Product = require("../model/productModel");
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
 const Cart = require("../model/cartModel");
 
@@ -30,6 +31,7 @@ router.get('/purchase',verifyUserToken,verifyAdminToken ,async (req, res) => {
 
 
 //create purchase order record
+
 router.post('/purchase', verifyUserToken, async (req, res) => {
 
   try {
@@ -70,7 +72,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       existingPurchase.items.push({ productId: item.productId, quantity: quantity });
       existingPurchase.totalPrice += totalPrice;
       await existingPurchase.save();
-
       
       // Remove the purchased item from the cart
       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
@@ -86,7 +87,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
       });
     } else {
       
-      // Create a new order item
       // Create a new purchase record
       const purchase = new Purchase({
         userId: req.user._id,
@@ -102,7 +102,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
 
       // Remove the purchased item from the cart
       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
-
 
       // Save the changes to the cart
       await cart.save();
@@ -247,18 +246,16 @@ router.get('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (r
 
 
 //user history
-router.get('/purchase/userOrder/:usersId', verifyUserToken, verifyAdminToken, isAdmin, async (req, res) => {
+router.get('/purchase/userOrder/:userId', verifyUserToken, verifyAdminToken, isAdmin, async (req, res) => {
   try {
-    const userOrderList = await Purchase.find({ user: req.params.usersId })
-      .populate({
-        path: 'orderItem', populate: [
-          { path: 'category', populate: { path: 'products' } }
-        ]
-      })
+    userId = req.user._id;
+    //get user's cart
+    const userOrderList = await Purchase.findOne(userId)
+    .populate('items.productId')
       .sort({ 'dateOrder': -1 });
-    if (!userOrderList) {
-      return res.status(404).json({ message: ' userOrderList not found' });
-    }
+      if (!userOrderList) {
+        return res.status(404).json({ message: 'No purchase history found for this user' });
+      }
 
     res.status(200).json({
       success: true,
@@ -266,6 +263,7 @@ router.get('/purchase/userOrder/:usersId', verifyUserToken, verifyAdminToken, is
       data: userOrderList,
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Internal server error' });
   }
 });
