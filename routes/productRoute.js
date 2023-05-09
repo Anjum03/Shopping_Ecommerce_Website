@@ -25,7 +25,6 @@ let publish ;
       res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
   
     } catch (error) {
-        console.log(error)
       res.status(500).json({ success: false, error: 'Server error' });
     }
   });
@@ -163,7 +162,6 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         res.status(201).json({ success: true, data: newProduct}); // Add the percentage symbol here
         
     } catch (error) {
-        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
@@ -276,7 +274,6 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         res.status(200).json({ success: true, data: updatedProduct });
 
     } catch (error) {
-        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -329,7 +326,6 @@ router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAd
         res.status(200).json({ success: true, data: 'Product removed from category successfully' });
 
     } catch (error) {
-        console.log(error)
         res.status(500).json(error);
     }
 });

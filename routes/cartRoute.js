@@ -139,7 +139,6 @@ router.post('/cart', verifyUserToken, async (req, res) => {
     }
   }
   catch (error) {
-    console.log(error);
     res.status(500).json({ success: false, message: 'Server Error', data: error });
   }
 });
@@ -227,7 +226,6 @@ router.delete('/cart/:id', verifyUserToken, async (req, res) => {
     res.status(200).json({ success: true, message: 'Delete Cart', data: deleteCart,});
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -271,7 +269,6 @@ router.get('/cart', verifyUserToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
 
   }

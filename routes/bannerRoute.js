@@ -203,7 +203,6 @@ let publish ;
 
         res.status(200).json({ success: true, data: banners});
     }catch (error) {
-        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 

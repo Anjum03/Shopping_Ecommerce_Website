@@ -26,7 +26,6 @@ let publish ;
     res.status(200).json({ success: true, message: `All Categories of Publish Data is Here ..`, data: categories });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -68,7 +67,6 @@ router.get("/category/:id", async (req, res) => {
     
     res.status(200).json({ success: true, message: `Category found with id ${categoryId}`, data: category });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -151,7 +149,6 @@ router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
       res.status(200).json({ success: true, data: updatedCategory });
     }
   } catch (error) {
-    console.log(error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });

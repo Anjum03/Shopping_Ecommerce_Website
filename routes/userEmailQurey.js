@@ -75,7 +75,6 @@ router.post('/email', async (req, res) => {
       });
     })
     .catch((error) => {
-      console.log(error)
       res.status(500).json({ success: false, data: error });
     });
 
@@ -173,7 +172,6 @@ router.post('/email/:id/reply', async (req, res) => {
       });
     })
     .catch((error) => {
-      console.log(error)
       res.status(500).json({ success: false, data: error });
     });
 
@@ -224,7 +222,6 @@ transporter.sendMail({
 },
   (error, info) => {
     if (error) {
-      console.log(error)
       res.status(500).send('Email could not be sent');
     } else {
       console.log(`Email sent to ${query.Email}: ${info.response}`);
@@ -288,7 +285,6 @@ router.get('/email/:userId', verifyAdminToken, isAdmin, async (req, res) => {
       data: { User: user.firstName, helpArticle }
     });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, data: error });
   }
 });

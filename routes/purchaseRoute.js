@@ -125,7 +125,6 @@ router.post('/purchase', verifyUserToken, async (req, res) => {
   }
 
   catch (error) {
-    console.log(error);
     res.status(500).json({ success: false, message: `Server Error`, data: error });
   }
 });
@@ -263,7 +262,6 @@ router.get('/purchase/userOrder/:userId', verifyUserToken, verifyAdminToken, isA
       data: userOrderList,
     });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: 'Internal server error' });
   }
 });
