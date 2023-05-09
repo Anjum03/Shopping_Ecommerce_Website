@@ -55,15 +55,6 @@ const bannerRoute = require("./routes/bannerRoute");
 app.use('/', bannerRoute);
 
 
-// app.get('/webhook', (req, res) => {
-
-//     let mode =  req.query["hub.mode"];
-//     let challenge =  req.query["hub.challenge"];
-//     let token =  req.query["hub.verify_token"];
-
-// });
-
-
 app.listen(PORT, () => {
     console.log(`Server is Started.... :)`)
 })
