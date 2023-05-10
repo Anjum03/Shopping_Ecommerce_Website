@@ -5,6 +5,7 @@ const Product = require('../model/productModel');
 const Category = require('../model/categoryModel');
 const { verifyAdminToken, isAdmin } = require('../middleware/token');
 const cloudinary = require('cloudinary').v2;
+const UserProduct = require("../model/userProductModel")
 
 //config
 cloudinary.config({
@@ -17,53 +18,53 @@ cloudinary.config({
 //view all category and product by publish data
 router.get("/category/:categoryId/product", async (req, res) => {
     try {
-let publish ;  
-      let product;
-      if (publish = true) {
-        product = await Product.find({ publish: 'true' });
-      }
-      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
-  
+        let publish;
+        let product;
+        if (publish = true) {
+            product = await Product.find({ publish: 'true' });
+        }
+        res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
+
     } catch (error) {
-      res.status(500).json({ success: false, error: 'Server error' });
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-  });
-  
-  // GET /category - Get all categories
-  router.get("/category/:categoryId/products",verifyAdminToken, isAdmin,  async (req, res) => {
+});
+
+// GET /category - Get all categories
+router.get("/category/:categoryId/products", verifyAdminToken, isAdmin, async (req, res) => {
     try {
-      
-      const product = await Product.find();
-      res.status(200).json({ success: true, message: `All Prodcut Here ..`, data: product });
-  
+
+        const product = await Product.find();
+        res.status(200).json({ success: true, message: `All Prodcut Here ..`, data: product });
+
     } catch (error) {
-      res.status(500).json({ success: false, error: 'Server error' });
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-  });
-  
+});
+
 
 
 
 //   Get by ID clothing product
 router.get('/category/:categoryId/product/:productId', async (req, res) => {
     try {
-      const categoryId = req.params.categoryId;
-      const productId = req.params.productId;
-  
-      const category = await Category.findById(categoryId);
-      const product = await Product.findById(productId);
-  
-      if (!category || !product) {
-        return res.status(404).json({ success: false, error: `Category and Product not found with id ${categoryId} and ${productId}` });
-      }
-  
-      res.status(200).json({ success: true, data: product });
-  
+        const categoryId = req.params.categoryId;
+        const productId = req.params.productId;
+
+        const category = await Category.findById(categoryId);
+        const product = await Product.findById(productId);
+
+        if (!category || !product) {
+            return res.status(404).json({ success: false, error: `Category and Product not found with id ${categoryId} and ${productId}` });
+        }
+
+        res.status(200).json({ success: true, data: product });
+
     } catch (error) {
-      res.status(500).json({ success: false, error: 'Server error' });
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-  });
-  
+});
+
 
 
 // Add a new product to a category
@@ -129,39 +130,123 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         const discountAmount = price * (discountPercentage / 100);
         const discountedPrice = price - discountAmount;
         const totalPrice = Math.round(discountedPrice);
-        
-        const product = new Product({
-          name: req.body.name,
-          description: req.body.description,
-          imageUrl: imageUrls,
-          fabric: req.body.fabric,
-          event: req.body.event,
-          category: req.body.category,
-          size: req.body.size,
-          bodyShape: req.body.bodyShape,
-          color: req.body.color,
-          clothMeasurement: req.body.clothMeasurement,
-          returnPolicy: req.body.returnPolicy,
-          stockAvaliability: req.body.stockAvaliability,
-          age: req.body.age,
-          discount: `${discountPercentage}%`, // Add the percentage symbol here
-          price: price,
-          totalPrice: totalPrice,
-          publish: req.body.publish 
+
+        const newProduct = new Product({
+            name: req.body.name,
+            description: req.body.description,
+            imageUrl: imageUrls,
+            fabric: req.body.fabric,
+            event: req.body.event,
+            category: req.body.category,
+            size: req.body.size,
+            bodyShape: req.body.bodyShape,
+            color: req.body.color,
+            clothMeasurement: req.body.clothMeasurement,
+            returnPolicy: req.body.returnPolicy,
+            stockAvaliability: req.body.stockAvaliability,
+            age: req.body.age,
+            discount: `${discountPercentage}%`, // Add the percentage symbol here
+            price: price,
+            totalPrice: totalPrice,
+            publish: req.body.publish
         });
-        
+
         // Save the product to the database
-        const newProduct = await product.save();
+        const savedProduct = await newProduct.save();
+        // create a new user product using the saved product's data
+        // const newUserProduct = new UserProduct({
+        //     id: savedProduct.id,
+        // name: savedProduct.name,
+        // discount: savedProduct.discount,
+        // type: ["trending", 'featured'],
+        // categories:savedProduct.category,
+        // // tags: savedProduct.category
+        // thumbs:savedProduct.imageUrl,
+        // previewImages: savedProduct.imageUrl,
+        // excerpt: savedProduct.description,
+        // // variations:[
+        // //     {
+        // //         id: req.body ,
+        // //         // id: req.body ,
+        // //         title: savedProduct[0],
+        // //         color:{
+        // //             name: savedProduct.color[0],
+        // //             thumb: savedProduct.imageUrl[0],
+        // //             code: savedProduct.color
+        // //         },
+        // //         materials: savedProduct.fabric.map(fabric =>{
+        // //             return {
+        // //                 name: fabric,
+        // //                 slug: fabric.toLowerCase(),
+        // //                 thumb: savedProduct.imageUrl[0],
+        // //                 price: savedProduct.price
+        // //             };
+        // //         }),
+        // //         sizes: savedProduct.size.map(size =>{
+        // //             return {
+        // //                 name: size,
+        // //                 stock: savedProduct.stockAvaliability
+        // //             };
+        // //         })
+        // //     },
+        // // ]
+
+        // })
+        const variations = [];
+
+        for (let i = 0; i < savedProduct.color.length; i++) {
+            variations.push({
+                id: savedProduct.id,
+                title: savedProduct.name,
+                color: {
+                    name: savedProduct.color[i],
+                    thumb: savedProduct.imageUrl[i],
+                    code: savedProduct.color[i]
+                },
+                materials: savedProduct.fabric.map(fabric => {
+                    return {
+                        name: fabric,
+                        slug: fabric.toLowerCase(),
+                        thumb: savedProduct.imageUrl[0],
+                        price: savedProduct.price
+                    };
+                }),
+                sizes: savedProduct.size.map(size => {
+                    return {
+                        name: size,
+                        stock: savedProduct.stockAvaliability || 0
+                    };
+                })
+            });
+        }
+// create a new user product using the saved product's data
+        const newUserProduct = new UserProduct({
+            id: savedProduct.id,
+        name: savedProduct.name,
+        discount: savedProduct.discount,
+        type: ["trending", 'featured'],
+        categories:savedProduct.category,
+        // tags: savedProduct.category
+        thumbs:savedProduct.imageUrl,
+        previewImages: savedProduct.imageUrl,
+        excerpt: savedProduct.description,
+        variations : variations
+
+        }); 
+        //save the new user product to the user database
+       await newUserProduct.save();
+        
         
         // Add the product to the category's products array
-        category.products.push(product._id);
+        category.products.push(savedProduct._id);
         await category.save();
-        
+        console.log('Product added Successfully')
         // Send the new product object as the response
         // res.status(201).json({ success: true, data: newProduct.toObject(), }); // Add the percentage symbol here
-        res.status(201).json({ success: true, data: newProduct}); // Add the percentage symbol here
-        
+        res.status(201).json({ success: true, data: newProduct }); // Add the percentage symbol here
+
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
@@ -248,17 +333,17 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.stockAvaliability =
             req.body.stockAvaliability || product.stockAvaliability;
         product.age = req.body.age || product.age;
-        product.discount = req.body.discount || product.discount ;
+        product.discount = req.body.discount || product.discount;
         product.price = parseFloat(req.body.price) || product.price;
 
-         // Recalculate the total price if the price or discount changes
-    const price = product.price;
-    const discountPercentage = parseInt(product.discount.replace("%", ""));
-    const discountAmount = price * (discountPercentage / 100);
-    const discountedPrice = price - discountAmount;
-    const totalPrice = Math.round(discountedPrice);
+        // Recalculate the total price if the price or discount changes
+        const price = product.price;
+        const discountPercentage = parseInt(product.discount.replace("%", ""));
+        const discountAmount = price * (discountPercentage / 100);
+        const discountedPrice = price - discountAmount;
+        const totalPrice = Math.round(discountedPrice);
 
-    product.totalPrice = totalPrice;
+        product.totalPrice = totalPrice;
 
         const updatedProduct = await product.save();
 
@@ -269,7 +354,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         category.products[productIndex] = updatedProduct._id;
 
         await category.save();
-         // Include the percentage symbol in the discount field of the response
+        // Include the percentage symbol in the discount field of the response
 
         res.status(200).json({ success: true, data: updatedProduct });
 
