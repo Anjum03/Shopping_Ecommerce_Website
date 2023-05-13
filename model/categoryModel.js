@@ -12,6 +12,10 @@ const categorySchema = new mongoose.Schema({
   populate: {
     path: 'price'
   }}],
+  Userproducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'UserProduct' ,
+  populate: {
+    path: 'price'
+  }}],
   publish: {
     type: Boolean,
   },
