@@ -43,6 +43,7 @@ productSchema.post('save', async function (doc, next) {
       bodyShape: doc.bodyShape,
       clothMeasurement: doc.clothMeasurement,
       returnPolicy: doc.returnPolicy,
+      publish: doc.publish,
       // variations: userProductVariations,
       // variations: userProductVariations,
       // sizes: sizesString,
@@ -85,9 +86,10 @@ productSchema.post('save', async function (doc, next) {
 
 
 
+
 // Post-save hook to add product to user collection
 //hook is pre and post pre means i want do somthing then save in db ex: password and confirm password then save in db same as post save in db then do this 
 
 
 
-module.exports = mongoose.model("Product", productSchema);
+module.exports = mongoose.model("Product", productSchema)

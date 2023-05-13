@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 const userProductSchema = new mongoose.Schema({
-  id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
     name: String, //product name
     discount:String, //product discount
     // imageUrl: [ String], //product image
@@ -21,6 +21,7 @@ const userProductSchema = new mongoose.Schema({
     //   returnPolicy:{ type: String},
     returnPolicy: [Number],
     //   price:{ type: Number },
+    publish: { type: Boolean, },
     variations:[
         {
           // _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
