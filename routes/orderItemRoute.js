@@ -55,6 +55,14 @@ router.put('/orderitem/:id',verifyUserToken, async (req, res) => {
         return res.status(404).json({success: false, msg:`orderItem not found` });
 
       }
+      if (order.orderStatus === "Delivered") {
+        return res.status(404).json({success: false, msg:`You have already delivered this order`});
+      }
+      order.orderStatus = req.body.status;
+
+      if (req.body.status === "Delivered") {
+        order.deliveredAt = Date.now();
+      }
       orderItem.price = req.body.price,
       orderItem.quantity = req.body.quantity,
       res.send(orderItem);

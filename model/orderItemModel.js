@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
+ 
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
   items: [
     {
@@ -10,7 +11,11 @@ const orderItemSchema = new mongoose.Schema({
     }
   ],
   totalPrice: { type: Number, default: 0 },
- 
+  deliveredAt: Date,
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const OrderItem = mongoose.model('OrderItem', orderItemSchema);

@@ -16,4 +16,17 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
+
+
+//forgot password
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) {
+//     next();
+//   }
+//   this.password = await bcrypt.hash(this.password, 10);
+// });
+
+
+
+
 module.exports = mongoose.model('User', userSchema);

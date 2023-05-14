@@ -139,7 +139,9 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             imageUrl: imageUrls,
             fabric: req.body.fabric,
             event: req.body.event,
-            category: category._id,
+            // category: category.name,
+            category: category.name ,
+
             size: req.body.size,
             bodyShape: req.body.bodyShape,
             color: req.body.color,
@@ -223,6 +225,7 @@ const userProductString = JSON.stringify(newUserProduct);
               userProductString: userProductString}); // Add the percentage symbol here
 
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
