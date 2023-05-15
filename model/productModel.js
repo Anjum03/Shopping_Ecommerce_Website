@@ -4,26 +4,50 @@ const mongoose = require("mongoose");
 const UserProduct = require("../model/userProductModel")
 
 const productSchema = new mongoose.Schema({
+  //   name: { type: String },
+  //    description: { type: String },
+  //   imageUrl: [String],
+  //    fabric: [String], 
+  //    event: [String],
+  //   // category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  //   category: { type: String },
+  //   // category: [ String ],
+  //   tags: { type: String },
+  //   // tags:[ String ],
+  //   size: [String],
+  //   //  bodyShape: [String],
+  //     color: [String],
+  //   // clothMeasurement: [String],
+  //    returnPolicy: Number, 
+  //    stockAvailability: [String],
+  //   // age:{ type: String, enum: ['15-20', '20-25', '25-30','30-36', '37-45', ] },
+  //   age: [String], 
+  //   discount: { type: String },
+  //    price: { type: Number },
+  //   totalPrice: { type: Number },
+  //    publish: { type: Boolean, },
+  // }
   name: { type: String },
-   description: { type: String },
+  description: { type: String },
   imageUrl: [String],
-   fabric: [String], 
-   event: [String],
-  // category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  fabric: String,
+  event: String,
   category: { type: String },
-  size: [String],
-   bodyShape: [String],
-    color: [String],
-  clothMeasurement: [String],
-   returnPolicy: [Number], 
-   stockAvailability: [String],
-  // age:{ type: String, enum: ['15-20', '20-25', '25-30','30-36', '37-45', ] },
-  age: [String], 
+  tags: { type: String },
+  type: String,
+  size: String,
+  bodyShape: String,
+  color: String,
+  clothMeasurement: String,
+  returnPolicy: Number,
+  stockAvailability: Number,
+  age: String,
   discount: { type: String },
-   price: { type: Number },
+  price: { type: Number },
   totalPrice: { type: Number },
-   publish: { type: Boolean, },
-}, { timestamps: true }
+  publish: { type: Boolean, },
+}
+  , { timestamps: true }
 );
 
 productSchema.post('save', async function (doc, next) {
@@ -31,38 +55,37 @@ productSchema.post('save', async function (doc, next) {
   try {
     if (!doc.variations) { // add a check to ensure that doc.variations is defined
       return next();
-    } 
+    }
     const userProduct = new UserProduct({
       // productId: doc._id, // set the productId field to the _id of the parent Product document      name: doc.name,
-      discount: doc.discount,
-      type: [{ type: String }],
-      category: doc.category,
+      discount: doc.discount.map(Number),
+      type: [{ type: String }], //featured , trending
+      categories: doc.category,
       tags: doc.category,
+      type: doc.category,
       thumbs: doc.color,
-      previewImages: doc.imageUrl.join(', '),
+      previewImages: doc.imageUrl,
       excerpt: doc.description,
       bodyShape: doc.bodyShape,
       clothMeasurement: doc.clothMeasurement,
+      // returnPolicy: doc.returnPolicy.map(Number),
       returnPolicy: doc.returnPolicy,
       publish: doc.publish,
-      // variations: userProductVariations,
-      // variations: userProductVariations,
-      // sizes: sizesString,
-      // materials: materialsString,
+
       variations: doc.variations.map(variation => {
         return {
           // productId: doc._id,
           title: variation.title,
-          color: {
+          color: [{
             name: variation.color.name,
             thumb: variation.color.thumb
-          },
+          }],
           materials: variation.materials.map(material => {
             return {
               _id: false,
               name: material.name,
               slug: material.name,
-              thumb: material.thumb,
+              thumb: material.name,
               price: material.price
             }
           }),
@@ -76,8 +99,6 @@ productSchema.post('save', async function (doc, next) {
         }
       })
     });
-
-
     await userProduct.save();
     next();
   } catch (error) {
