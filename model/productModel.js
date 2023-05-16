@@ -4,29 +4,7 @@ const mongoose = require("mongoose");
 const UserProduct = require("../model/userProductModel")
 
 const productSchema = new mongoose.Schema({
-  //   name: { type: String },
-  //    description: { type: String },
-  //   imageUrl: [String],
-  //    fabric: [String], 
-  //    event: [String],
-  //   // category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  //   category: { type: String },
-  //   // category: [ String ],
-  //   tags: { type: String },
-  //   // tags:[ String ],
-  //   size: [String],
-  //   //  bodyShape: [String],
-  //     color: [String],
-  //   // clothMeasurement: [String],
-  //    returnPolicy: Number, 
-  //    stockAvailability: [String],
-  //   // age:{ type: String, enum: ['15-20', '20-25', '25-30','30-36', '37-45', ] },
-  //   age: [String], 
-  //   discount: { type: String },
-  //    price: { type: Number },
-  //   totalPrice: { type: Number },
-  //    publish: { type: Boolean, },
-  // }
+ 
   name: { type: String },
   description: { type: String },
   imageUrl: [String],
@@ -59,7 +37,8 @@ productSchema.post('save', async function (doc, next) {
     const userProduct = new UserProduct({
       // productId: doc._id, // set the productId field to the _id of the parent Product document      name: doc.name,
       discount: doc.discount.map(Number),
-      type: [{ type: String }], //featured , trending
+      // type: [String ], //featured , trending
+      type: doc.type, //featured , trending
       categories: doc.category,
       tags: doc.category,
       type: doc.category,
@@ -86,7 +65,7 @@ productSchema.post('save', async function (doc, next) {
               name: material.name,
               slug: material.name,
               thumb: material.name,
-              price: material.price
+              price: material.totalPrice
             }
           }),
           sizes: variation.sizes.map(size => {

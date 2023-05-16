@@ -133,10 +133,10 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         const totalPrice = Math.round(discountedPrice);
 
         const categoryAdmin = category._id;
-const categoryUserProduct = category.name;
+        const categoryUserProduct = category.name;
 
-const discountAdmin = `${discountPercentage}%` ;
-const discountUser = `${discountPercentage}` ;
+        const discountAdmin = `${discountPercentage}%`;
+        const discountUser = `${discountPercentage}`;
 
         const newProduct = new Product({
             name: req.body.name,
@@ -161,26 +161,27 @@ const discountUser = `${discountPercentage}` ;
         });
         const savedProduct = await newProduct.save();
 
-        const variations = [];      
-            variations.push({
-                // id: savedProduct.id,
-                title: savedProduct.name,
-                color: {
-                    name: savedProduct.color ,
-                    thumb: savedProduct.color,
-                    code: savedProduct.color 
-                },
-                materials: [{
-                    name: savedProduct.fabric ,
-                    thumb: savedProduct.fabric,
-                    code: savedProduct.fabric 
-                }],
-                size: [{
-                    name: savedProduct.size ,
-                    thumb: savedProduct.stockAvailability,
-                    // code: savedProduct.fabric[i] 
-                }],
-            });
+        const variations = [];
+        variations.push({
+            // id: savedProduct.id,
+            title: savedProduct.name,
+            color: {
+                name: savedProduct.color,
+                thumb: savedProduct.color,
+                code: savedProduct.color
+            },
+            materials: [{
+                name: savedProduct.fabric,
+                thumb: savedProduct.fabric,
+                slug: savedProduct.fabric,
+                price: savedProduct.totalPrice
+            }],
+            sizes: [{
+                name: savedProduct.size,
+                stockAvailability: savedProduct.stockAvailability,
+                // code: savedProduct.fabric[i] 
+            }],
+        });
 
         // create a new user product using the saved product's data
         const newUserProduct = new UserProduct({
@@ -188,7 +189,7 @@ const discountUser = `${discountPercentage}` ;
             name: savedProduct.name,
             discount: discountUser,
             type: savedProduct.type,
-            categories:categoryUserProduct,
+            categories: categoryUserProduct,
             tags: categoryUserProduct,
             thumbs: savedProduct.imageUrl,
             previewImages: savedProduct.imageUrl,
@@ -204,22 +205,16 @@ const discountUser = `${discountPercentage}` ;
         //save the new user product to the user database
         await newUserProduct.save();
 
-        // Convert the user product object to a JSON string
-        // const userProductString = JSON.stringify(newUserProduct);
-
         // Add the product to the category's products array
         category.products.push(savedProduct._id);
         await category.save();
-        console.log('Product added Successfully') ;
         res.status(201).json({
             success: true,
             data: newProduct,
-            // userProductString: userProductString
             userProductString: newUserProduct
         }); // Add the percentage symbol here
 
     } catch (error) {
-        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
