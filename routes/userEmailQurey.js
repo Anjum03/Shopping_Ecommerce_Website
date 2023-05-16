@@ -17,9 +17,9 @@ const { verifyAdminToken, isAdmin } = require('../middleware/token');
 
 // Receive Email for Query
 router.post('/email', async (req, res) => {
-  const user_id = req.body.user_id;
-  const product_id = req.body.product_id;
-  const category_id = req.body.category_id;
+  // const user_id = req.body.user_id;
+  // const product_id = req.body.product_id;
+  // const category_id = req.body.category_id;
   const Name = req.body.Name;
   const Email = req.body.Email;
   const whatsapp = req.body.whatsapp;
@@ -38,17 +38,18 @@ router.post('/email', async (req, res) => {
 
 
   // Find the product and category
-  const product = await Product.findById(product_id).select('name');
+  // const product = await Product.findById(product_id).select('name');
   const user = await User.findById(user_id).select('firstName');
-  const category = await Category.findById(category_id).select('name');
+  // const category = await Category.findById(category_id).select('name');
 
   // Check if product and category exist
 
-  if (!product || !category) {
-    return res.status(404).json({ message: `${!product ? 'Product' : 'Category'} not found` });
-  }
+  // if (!product || !category) {
+  //   return res.status(404).json({ message: `${!product ? 'Product' : 'Category'} not found` });
+  // }
   const query = new HelpArticle({
-    user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability, color, message,
+    // user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability, color, message,
+    user_id,  Name, Email, whatsapp, size, stockAvailability, color, message,
     status: 'Open',
   });
   await query.save()
@@ -57,8 +58,8 @@ router.post('/email', async (req, res) => {
       res.status(200).json({
         success: true, data: {
           user_name: user.firstName,
-          product_name: product.name,
-          category_name: category.name,
+          // product_name: product.name,
+          // category_name: category.name,
           Name: query.Name,
           Email: query.Email,
           whatsapp: query.whatsapp,
@@ -108,8 +109,8 @@ router.post('/email', async (req, res) => {
             user_name: Name,
             user_email: Email,
             user_whatsapp: whatsapp,
-            category_name: category.name,
-            product_name: product.name,
+            // category_name: category.name,
+            // product_name: product.name,
             message: message,
             size: size,
             color: color,

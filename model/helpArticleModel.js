@@ -3,12 +3,12 @@
 const mongoose = require('mongoose');
 
 const helpArticlesSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
-  product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category',  },
+  // user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User',  },
+  // product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product',  },
+  // category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category',  },
 
-  Name: String,
-  Email: String,
+  Name: String, //userName 
+  Email: String, //
   whatsapp: Number,
   size:[ String],
   message: String,
