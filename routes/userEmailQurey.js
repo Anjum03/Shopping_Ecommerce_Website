@@ -39,7 +39,7 @@ router.post('/email', async (req, res) => {
 
   // Find the product and category
   // const product = await Product.findById(product_id).select('name');
-  const user = await User.findById(user_id).select('firstName');
+  // const user = await User.findById(user_id).select('firstName');
   // const category = await Category.findById(category_id).select('name');
 
   // Check if product and category exist
@@ -49,7 +49,7 @@ router.post('/email', async (req, res) => {
   // }
   const query = new HelpArticle({
     // user_id, product_id, category_id, Name, Email, whatsapp, size, stockAvailability, color, message,
-    user_id,  Name, Email, whatsapp, size, stockAvailability, color, message,
+     Name, Email, whatsapp, size, stockAvailability, color, message,
     status: 'Open',
   });
   await query.save()
@@ -57,7 +57,7 @@ router.post('/email', async (req, res) => {
       // Send email code here
       res.status(200).json({
         success: true, data: {
-          user_name: user.firstName,
+          // user_name: user.firstName,
           // product_name: product.name,
           // category_name: category.name,
           Name: query.Name,
@@ -274,21 +274,21 @@ router.get('/email/:id', verifyAdminToken, isAdmin, async (req, res) => {
 
 
 
-//Admin can get by userId also
-router.get('/email/:userId', verifyAdminToken, isAdmin, async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const user = await User.findById(userId).select('firstName');
+// //Admin can get by userId also
+// router.get('/email/:userId', verifyAdminToken, isAdmin, async (req, res) => {
+//   try {
+//     const userId = req.params.userId;
+//     const user = await User.findById(userId).select('firstName');
 
-    const helpArticle = await HelpArticle.find({ user_id: userId }).populate('product_id', 'name').populate('category_id', 'name');
-    res.status(200).json({
-      success: true, message: `User's First Name`,
-      data: { User: user.firstName, helpArticle }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, data: error });
-  }
-});
+//     const helpArticle = await HelpArticle.find({ user_id: userId }).populate('product_id', 'name').populate('category_id', 'name');
+//     res.status(200).json({
+//       success: true, message: `User's First Name`,
+//       data: { User: user.firstName, helpArticle }
+//     });
+//   } catch (error) {
+//     res.status(500).json({ success: false, data: error });
+//   }
+// });
 
 
 

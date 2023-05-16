@@ -137,7 +137,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
 
         const discountAdmin = `${discountPercentage}%`;
         const discountUser = `${discountPercentage}`;
-
+       
         const newProduct = new Product({
             name: req.body.name,
             description: req.body.description,
@@ -160,8 +160,8 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             publish: req.body.publish
         });
         const savedProduct = await newProduct.save();
-
-        const variations = [];
+        
+        let variations = [];
         variations.push({
             // id: savedProduct.id,
             title: savedProduct.name,
@@ -179,7 +179,6 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             sizes: [{
                 name: savedProduct.size,
                 stockAvailability: savedProduct.stockAvailability,
-                // code: savedProduct.fabric[i] 
             }],
         });
 
@@ -198,7 +197,6 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             clothMeasurement: savedProduct.clothMeasurement,
             returnPolicy: savedProduct.returnPolicy,
             variations: variations,
-            // variations: JSON.parse(variationsString) ,
             publish: savedProduct.publish
 
         });
@@ -211,10 +209,11 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         res.status(201).json({
             success: true,
             data: newProduct,
-            userProductString: newUserProduct
+            userUserProduct: newUserProduct,
         }); // Add the percentage symbol here
 
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
@@ -317,38 +316,33 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 
         // update the user product object
         const variations = [];
-        for (let i = 0; i < savedProduct.color.length; i++) {
+      
             variations.push({
                 title: savedProduct.name,
                 color: {
-                    name: savedProduct.color[i],
-                    thumb: savedProduct.imageUrl[i],
-                    code: savedProduct.color[i]
+                    name: savedProduct.color,
+                    thumb: savedProduct.color,
+                    code: savedProduct.color
                 },
-                materials: savedProduct.fabric.map(fabric => {
-                    return {
-                        name: fabric,
-                        slug: fabric,
-                        thumb: savedProduct.imageUrl[i],
-                        price: savedProduct.totalPrice
-                    };
-                }),
-                sizes: savedProduct.size.map(size => {
-                    return {
-                        name: size,
-                        stockAvailability: req.body.stockAvailability && req.body.stockAvailability[i] ? parseInt(req.body.stockAvailability[i]) : 0
-                        // stockAvailability: req.body.stockAvailability.length > i ? parseInt(req.body.stockAvailability[i]) : 0
-
-                    };
-                })
+                materials: [{
+                    name: savedProduct.fabric,
+                    thumb: savedProduct.fabric,
+                    slug: savedProduct.fabric,
+                    price: savedProduct.totalPrice
+                }],
+                sizes: [{
+                    name: savedProduct.size,
+                    stockAvailability: savedProduct.stockAvailability,
+                }],
             });
-        }
 
-        const userProduct = await UserProduct.findOne({ id: savedProduct.id });
+        const userProduct = await UserProduct.findOne({ productId: savedProduct._id });
         if (userProduct) {
+            userProduct.productId=  savedProduct._id,
             userProduct.name = savedProduct.name;
             userProduct.discount = savedProduct.discount;
             userProduct.category = savedProduct.category;
+            userProduct.type = savedProduct.type;
             userProduct.tags = savedProduct.category;
             userProduct.thumbs = savedProduct.imageUrl;
             userProduct.previewImages = savedProduct.imageUrl;
@@ -360,7 +354,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
 
             await userProduct.save();
         }
-        savedProduct.discount = `${savedProduct.discount}%`;
+        savedProduct.discount = `${savedProduct.discount}`;
 
         // Update the product in the category's products array
         const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
@@ -369,9 +363,10 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         await category.save();
         // Include the percentage symbol in the discount field of the response
 
-        res.status(200).json({ success: true, data: savedProduct });
+        res.status(200).json({ success: true, data: savedProduct, newUserProduct: userProduct });
 
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });

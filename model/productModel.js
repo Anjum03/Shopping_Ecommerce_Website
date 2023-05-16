@@ -47,18 +47,20 @@ productSchema.post('save', async function (doc, next) {
       excerpt: doc.description,
       bodyShape: doc.bodyShape,
       clothMeasurement: doc.clothMeasurement,
-      // returnPolicy: doc.returnPolicy.map(Number),
       returnPolicy: doc.returnPolicy,
       publish: doc.publish,
 
       variations: doc.variations.map(variation => {
+       
         return {
           // productId: doc._id,
+          
           title: variation.title,
           color: [{
             name: variation.color.name,
             thumb: variation.color.thumb
           }],
+          color: colors,
           materials: variation.materials.map(material => {
             return {
               _id: false,
@@ -78,6 +80,7 @@ productSchema.post('save', async function (doc, next) {
         }
       })
     });
+   
     await userProduct.save();
     next();
   } catch (error) {
