@@ -18,18 +18,20 @@ cloudinary.config({
 //view all category and product by publish data
 router.get("/category/:categoryId/product", async (req, res) => {
     try {
-        let publish;
-        let product;
-        if (publish = true) {
-            product = await Product.find({ publish: 'true' });
-            product = await UserProduct.find({ publish: 'true' });
-        }
-        res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product });
-
+let publish ;  
+      let product;
+      let userProduct
+      if (publish = true) {
+        product = await Product.find({ publish: 'true' });
+        userProduct = await UserProduct.find({ publish: 'true'})
+      }
+      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product , userProduct});
+  
     } catch (error) {
-        res.status(500).json({ success: false, error: 'Server error' });
+        console.log(error)
+      res.status(500).json({ success: false, error: 'Server error' });
     }
-});
+  });
 
 // GET /category - Get all categories
 router.get("/category/:categoryId/products", verifyAdminToken, isAdmin, async (req, res) => {
@@ -343,6 +345,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             userProduct.discount = savedProduct.discount;
             userProduct.category = savedProduct.category;
             userProduct.type = savedProduct.type;
+            userProduct.publish = savedProduct.publish;
             userProduct.tags = savedProduct.category;
             userProduct.thumbs = savedProduct.imageUrl;
             userProduct.previewImages = savedProduct.imageUrl;

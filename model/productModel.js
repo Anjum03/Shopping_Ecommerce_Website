@@ -60,7 +60,6 @@ productSchema.post('save', async function (doc, next) {
             name: variation.color.name,
             thumb: variation.color.thumb
           }],
-          color: colors,
           materials: variation.materials.map(material => {
             return {
               _id: false,
