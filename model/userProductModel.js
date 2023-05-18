@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const userProductSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
   name: String, //product name
-  discount: [Number], //product discount
+  discount: Number, //product discount
   type: [String], //trending , featured
-  categories: String,
-  tags: String, // same category title 
+  categories: [String],
+  tags: [String], // same category title 
   thumbs: [String], //multiple  or 2 images 
   previewImages: [String], //multiple  or 4 images
   excerpt: String, //product description
