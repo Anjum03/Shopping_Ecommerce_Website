@@ -299,7 +299,6 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             }
             newImageUrls = await Promise.all(uploadPromises);
         }
-
         // Update the product fields
         product.name = req.body.name || product.name;
         product.publish = req.body.publish || product.publish;
@@ -312,30 +311,31 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.bodyShape = req.body.bodyShape || product.bodyShape;
         product.color = req.body.color || product.color;
         product.clothMeasurement =
-            req.body.clothMeasurement || product.clothMeasurement;
+        req.body.clothMeasurement || product.clothMeasurement;
         product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
         product.stockAvailability =
-            req.body.stockAvailability || product.stockAvailability;
+        req.body.stockAvailability || product.stockAvailability;
         product.age = req.body.age || product.age;
         product.discount = req.body.discount || product.discount;
         product.price = parseFloat(req.body.price) || product.price;
-
+        
         // Recalculate the total price if the price or discount changes
         const price = product.price;
         const discountPercentage = parseInt(product.discount.replace("%", ""));
         const discountAmount = price * (discountPercentage / 100);
         const discountedPrice = price - discountAmount;
         const totalPrice = Math.round(discountedPrice);
-
+        
         product.totalPrice = totalPrice;
-
+        
         const savedProduct = await product.save();
-
+        
+        const discountUser = `${discountPercentage}`;
         // update the user product object
         const variations = [];
-      
-            variations.push({
-                title: savedProduct.name,
+        
+        variations.push({
+            title: savedProduct.name,
                 color: {
                     name: savedProduct.color,
                     thumb: savedProduct.color,
@@ -357,7 +357,8 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         if (userProduct) {
             userProduct.productId=  savedProduct._id,
             userProduct.name = savedProduct.name;
-            userProduct.discount = savedProduct.discount;
+            // userProduct.discount = savedProduct.discount;
+            userProduct.discount = discountUser;
             userProduct.category = savedProduct.category;
             userProduct.type = savedProduct.type;
             userProduct.publish = savedProduct.publish;
