@@ -25,6 +25,8 @@ const productSchema = new mongoose.Schema({
   totalPrice: { type: Number },
   publish: { type: Boolean, },
 }
+
+
   , { timestamps: true }
 );
 

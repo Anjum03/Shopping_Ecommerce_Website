@@ -2,8 +2,10 @@
 const mongoose = require('mongoose');
 
 const userProductSchema = new mongoose.Schema({
+
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
   name: String, //product name
+  event: String, //product event
   discount: Number, //product discount
   type: [String], //trending , featured
   categories: [String],
