@@ -42,6 +42,7 @@ productSchema.post('save', async function (doc, next) {
       // type: [String ], //featured , trending
       type: doc.type, //featured , trending
       categories: doc.category,
+     event: doc.event,
       tags: doc.category,
       type: doc.category,
       thumbs: doc.color,
