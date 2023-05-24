@@ -51,8 +51,9 @@ productSchema.post('save', async function (doc, next) {
       clothMeasurement: doc.clothMeasurement,
       returnPolicy: doc.returnPolicy,
       publish: doc.publish,
+
+
       variations: doc.variations.map(variation => {
-       
         return {
           // productId: doc._id,
           
