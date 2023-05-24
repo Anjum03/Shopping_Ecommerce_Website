@@ -1,5 +1,3 @@
-
-
 const mongoose = require("mongoose");
 const UserProduct = require("../model/userProductModel")
 
@@ -36,23 +34,23 @@ productSchema.post('save', async function (doc, next) {
     if (!doc.variations) { // add a check to ensure that doc.variations is defined
       return next();
     }
+    
     const userProduct = new UserProduct({
       // productId: doc._id, // set the productId field to the _id of the parent Product document      name: doc.name,
       discount: doc.discount.map(Number),
       // type: [String ], //featured , trending
       type: doc.type, //featured , trending
       categories: doc.category,
-     event: doc.event,
+      event: doc.event,
       tags: doc.category,
       type: doc.category,
-      thumbs: doc.color,
+      thumbs: doc.imageUrl.slice(0, 2),
       previewImages: doc.imageUrl,
       excerpt: doc.description,
       bodyShape: doc.bodyShape,
       clothMeasurement: doc.clothMeasurement,
       returnPolicy: doc.returnPolicy,
       publish: doc.publish,
-
       variations: doc.variations.map(variation => {
        
         return {
@@ -61,7 +59,7 @@ productSchema.post('save', async function (doc, next) {
           title: variation.title,
           color: [{
             name: variation.color.name,
-            thumb: variation.color.thumb
+            thumb: variation.color.name
           }],
           materials: variation.materials.map(material => {
             return {

@@ -205,9 +205,10 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             name: savedProduct.name,
             discount: discountUser,
             type: savedProduct.type,
+            event: savedProduct.event,
             categories: categoryUserProduct,
             tags: categoryUserProduct,
-            thumbs: savedProduct.imageUrl,
+            thumbs: savedProduct.imageUrl.slice(0, 2),
             previewImages: savedProduct.imageUrl,
             excerpt: savedProduct.description,
             bodyShape: savedProduct.bodyShape,
@@ -363,6 +364,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             userProduct.type = savedProduct.type;
             userProduct.publish = savedProduct.publish;
             userProduct.tags = savedProduct.category;
+            userProduct.event = savedProduct.event;
             userProduct.thumbs = savedProduct.imageUrl;
             userProduct.previewImages = savedProduct.imageUrl;
             userProduct.excerpt = savedProduct.description;
