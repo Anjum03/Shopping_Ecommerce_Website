@@ -16,7 +16,6 @@ cloudinary.config({
 
 //   Get by all clothing product
 //view all category and product by publish data for User 
-
 router.get("/category/:categoryId/product/user", async (req, res) => {
     try {
 let publish ;  
@@ -32,51 +31,31 @@ let publish ;
       res.status(500).json({ success: false, error: 'Server error' });
     }
   });
-  
-  
-  
-  
-
-
 //view all category and product by publish data
 router.get("/category/:categoryId/product", async (req, res) => {
     try {
-        const categoryId = req.params.categoryId;
-
-        // Check if the category exists in the database
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
-
-        const publish = req.query.publish === 'true';
-        let products;
-        if (publish) {
-            products = await Product.find({ category: categoryId, publish: true });
-        } else {
-            products = await Product.find({ category: categoryId });
-        }
-
-        res.status(200).json({ success: true, message: `Products for Category ID ${categoryId}`, data: products });
+let publish ;  
+      let product;
+      let userProduct
+      if (publish = true) {
+        product = await Product.find({ publish: 'true' });
+      }
+      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product , userProduct});
+  
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, error: 'Server error' });
+        console.log(error)
+      res.status(500).json({ success: false, error: 'Server error' });
     }
-});
-
-
+  });
 
 // GET /category - Get all categories
 router.get("/category/:categoryId/products", verifyAdminToken, isAdmin, async (req, res) => {
     try {
-        const categoryId = req.params.categoryId;
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
 
-        const products = await Product.find({ category: categoryId });
-        res.status(200).json({ success: true, message: `Products for Category ID ${categoryId}`, data: products });
+        const product = await Product.find();
+        const userProduct = await UserProduct.find();
+        res.status(200).json({ success: true, message: `All Prodcut Here ..`, data: product, userProduct });
+
     } catch (error) {
         res.status(500).json({ success: false, error: 'Server error' });
     }
@@ -91,15 +70,11 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
         const categoryId = req.params.categoryId;
         const productId = req.params.productId;
 
-        // Check if the category and product exist in the database
         const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
+        const product = await Product.findById(productId);
 
-        const product = await Product.findOne({ _id: productId, category: categoryId });
-        if (!product) {
-            return res.status(404).json({ success: false, error: `Product not found with id ${productId}` });
+        if (!category || !product) {
+            return res.status(404).json({ success: false, error: `Category and Product not found with id ${categoryId} and ${productId}` });
         }
 
         res.status(200).json({ success: true, data: product });
