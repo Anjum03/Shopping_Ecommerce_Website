@@ -304,7 +304,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         }
         // Update the product fields
         product.name = req.body.name || product.name;
-        product = req.body.publish || product.publish;
+        product.publish = req.body.publish || product.publish;
         product.description = req.body.description || product.description;
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;
