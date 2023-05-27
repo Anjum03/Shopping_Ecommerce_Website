@@ -58,10 +58,10 @@ productSchema.post('save', async function (doc, next) {
           // productId: doc._id,
           
           title: variation.title,
-          color: [{
+          color: {
             name: variation.color.name,
             thumb: variation.color.name
-          }],
+          },
           materials: variation.materials.map(material => {
             return {
               _id: false,
