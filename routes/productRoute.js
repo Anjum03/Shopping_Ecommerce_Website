@@ -17,32 +17,18 @@ cloudinary.config({
 //   Get by all clothing product
 //view all category and product by publish data for User 
 
-router.get('/category/:categoryId/product/user', async (req, res) => {
+router.get("/category/:categoryId/product/user", async (req, res) => {
     try {
-      const categoryId = req.params.categoryId;
-  
-      // Check if the category exists in the database
-      const category = await Category.findById(categoryId);
-      if (!category) {
-        return res
-          .status(404)
-          .json({ success: false, error: `Category not found with id ${categoryId}` });
+let publish ;  
+      let product;
+      let userProduct
+      if (publish = true) {
+        userProduct = await UserProduct.find({ publish: 'true'})
       }
-
+      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product , userProduct});
   
-const query = {
-    categories: [category.name], // Use an array containing the category ID
-    publish: { $in: [true] } // Include documents with publish: true and publish: false
-  };
-      const userProducts = await UserProduct.find(query);
-  
-      res.status(200).json({
-        success: true,
-        message: `Products for Category ID ${categoryId}`,
-        data: userProducts
-      });
     } catch (error) {
-      console.log(error);
+        console.log(error)
       res.status(500).json({ success: false, error: 'Server error' });
     }
   });
