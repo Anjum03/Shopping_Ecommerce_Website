@@ -163,7 +163,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             imageUrl: imageUrls,
             fabric: req.body.fabric,
             event: req.body.event,
-            tags: req.body.tags,
+            tags: categoryAdmin,
             type: req.body.type,
             category: categoryAdmin,
             size: req.body.size,
