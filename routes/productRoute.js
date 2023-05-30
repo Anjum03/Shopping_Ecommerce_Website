@@ -16,7 +16,7 @@ cloudinary.config({
 
 //   Get by all clothing product
 //view all category and product by publish data for User 
-router.get("/category/:categoryId/product/user", async (req, res) => {
+router.get("/product/category/:categoryName", async (req, res) => {
     try {
 let publish ;  
       let product;
@@ -205,6 +205,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         const newUserProduct = new UserProduct({
             productId: savedProduct.id, // --------------------->  no issue
             name: savedProduct.name,
+            age: savedProduct.age,
             discount: discountUser,
             type: savedProduct.type,
             event: savedProduct.event,

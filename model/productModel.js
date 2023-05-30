@@ -43,6 +43,7 @@ productSchema.post('save', async function (doc, next) {
       categories: doc.category,
       event: doc.event,
       tags: doc.category,
+      age: doc.age,
       type: doc.category,
       thumbs: doc.imageUrl.slice(0, 2),
       previewImages: doc.imageUrl,

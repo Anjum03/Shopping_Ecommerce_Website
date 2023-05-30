@@ -14,15 +14,16 @@ const userProductSchema = new mongoose.Schema({
   previewImages: [String], //multiple  or 4 images
   excerpt: String, //product description
   bodyShape: String,
+  age: String,
   clothMeasurement: String,
   returnPolicy: Number,
   publish: { type: Boolean, },
   variations: [ //variation array
     { //color object
       // _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-      title: String, //product color 
+      title: String,       //product color 
       color: {
-        name: String, // product color in lowercase
+        name: String,    // product color in lowercase
         thumb: String,  //product img
       },
       materials: [{
