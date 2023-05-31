@@ -20,7 +20,7 @@ router.post('/cart', verifyUserToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product ID' });
     }
 
-    const cart = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
+    const cart = await Cart.findOne({ userId: userId });       // search cart by userId instead of token
     const orderItem = await Cart.findOne({ userId: userId }); // search cart by userId instead of token
     if (!cart) {
       // If cart doesn't exist for the user, create a new cart
@@ -239,6 +239,50 @@ router.get('/cart', verifyUserToken, async (req, res) => {
     userId = req.user.id
     // Find the cart for the user
     const cart = await Cart.findOne({userId})
+
+    if (!cart) {
+      return res.status(400).json({ success: false, message: 'Cart not found' });
+    }
+
+    const items = [];
+    for (let i = 0; i < cart.items.length; i++) {
+      const item = cart.items[i];
+      const product = await Product.findById(item.productId);
+      if (product) {
+        items.push({
+          productId: product._id,
+          name: product.name,
+          price: product.price,
+          quantity: item.quantity
+        });
+      }
+    }
+
+    // res.status(200).json({ success: true, message: `All Cart Here ..`, data: { items, totalPrice: cart.totalPrice } });
+    res.status(200).json({
+      success: true,
+      message: `User's cart:`,
+      data: { 
+        items, 
+        totalPrice: cart.totalPrice, 
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error' });
+
+  }
+
+});
+
+
+//getbyID
+router.get('/cart/:id', verifyUserToken, async (req, res) => {
+
+  try {
+    userId = req.user._id
+    // Find the cart for the user
+    const cart = await Cart.findOne(userId)
 
     if (!cart) {
       return res.status(400).json({ success: false, message: 'Cart not found' });

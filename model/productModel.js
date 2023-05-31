@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema({
   imageUrl: [String],
   fabric: String,
   event: String,
-  category: [{ type: String ,lowercase:true  }],
+  category: [{ type: String , lowercase:true  }],
   tags: [String],
   type: String,
   size: String,
