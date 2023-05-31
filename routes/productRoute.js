@@ -16,7 +16,7 @@ cloudinary.config({
 
 //   Get by all clothing product
 //view all category and product by publish data for User 
-router.get("/product/category/:categoryName", async (req, res) => {
+router.get("/product/category", async (req, res) => {
     try {
 let publish ;  
       let product;
@@ -372,6 +372,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             userProduct.previewImages = savedProduct.imageUrl;
             userProduct.excerpt = savedProduct.description;
             userProduct.bodyShape = savedProduct.bodyShape;
+            userProduct.age = savedProduct.age;
             userProduct.returnPolicy = savedProduct.returnPolicy;
             userProduct.clothMeasurement = savedProduct.clothMeasurement;
             userProduct.variations = variations;

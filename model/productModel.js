@@ -3,12 +3,12 @@ const UserProduct = require("../model/userProductModel")
 
 const productSchema = new mongoose.Schema({
  
-  name: { type: String },
+  name: { type: String ,  },
   description: { type: String },
   imageUrl: [String],
   fabric: String,
   event: String,
-  category: [String],
+  category: [{ type: String ,lowercase:true  }],
   tags: [String],
   type: String,
   size: String,
