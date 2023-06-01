@@ -101,6 +101,7 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
           res.status(201).json({ success: true, data: newCategory });
       })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -173,14 +174,17 @@ router.delete("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
       await cloudinary.uploader.destroy(publicId);
     }
 
-    await category.deleteOne();
-    await Product.deleteOne({ category: categoryId });
-    await UserProduct.deleteOne({ category: categoryId });
-    res.status(200).json({ success: true, data: category });
+    await Category.deleteOne({ _id: categoryId });
+    await Product.deleteMany({ category: categoryId });
+    await UserProduct.deleteMany({ categories: category.name });
+
+    res.status(200).json({ success: true, data: category  });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
 
 
 

@@ -9,7 +9,7 @@ const userProductSchema = new mongoose.Schema({
   event: String, //product event
   discount: Number, //product discount
   type: [String], //trending , featured
-  categories: [{ type: String ,lowercase:true  }],
+  categories: [{ type: String, lowercase: true }],
   tags: [String], // same category title 
   thumbs: [String], //multiple  or 2 images 
   previewImages: [String], //multiple  or 4 images

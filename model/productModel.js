@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema({
   imageUrl: [String],
   fabric: String,
   event: String,
-  category: [{ type: String , lowercase:true  }],
+  category: [{ type: String ,}],
   tags: [String],
   type: String,
   size: String,
@@ -40,8 +40,8 @@ productSchema.post('save', async function (doc, next) {
       discount: doc.discount.map(Number),
       // type: [String ], //featured , trending
       type: doc.type, //featured , trending
-      categories: doc.category,
       event: doc.event,
+      categories: doc.category,
       tags: doc.category,
       age: doc.age,
       type: doc.category,

@@ -257,6 +257,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             return res.status(404).send({ error: 'Product or Category not found' });
         }
 
+        
         // Check if new image files are being uploaded
         let newImageUrls = product.imageUrl;
         if (req.files && req.files.photos) {
@@ -310,7 +311,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;
         product.event = req.body.event || product.event;
-        product.category = req.body.category || product.category;
+        product.category = req.body.categoryAdmin || product.category;
         product.size = req.body.size || product.size;
         product.bodyShape = req.body.bodyShape || product.bodyShape;
         product.color = req.body.color || product.color;
@@ -335,6 +336,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         const savedProduct = await product.save();
         
         const discountUser = `${discountPercentage}`;
+        const categoryUserProduct = category.name;
         // update the user product object
         const variations = [];
         
@@ -363,10 +365,10 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             userProduct.name = savedProduct.name;
             // userProduct.discount = savedProduct.discount;
             userProduct.discount = discountUser;
-            userProduct.category = savedProduct.category;
+            userProduct.categories = categoryUserProduct;
             userProduct.type = savedProduct.type;
             userProduct.publish = savedProduct.publish;
-            userProduct.tags = savedProduct.category;
+            userProduct.tags = categoryUserProduct;
             userProduct.event = savedProduct.event;
             userProduct.thumbs = savedProduct.imageUrl;
             userProduct.previewImages = savedProduct.imageUrl;
