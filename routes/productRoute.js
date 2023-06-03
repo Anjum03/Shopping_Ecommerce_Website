@@ -16,46 +16,71 @@ cloudinary.config({
 
 //   Get by all clothing product
 //view all category and product by publish data for User 
-router.get("/product/category", async (req, res) => {
+
+router.get('/product/category', async (req, res) => {
     try {
-let publish ;  
-      let product;
-      let userProduct
-      if (publish = true) {
-        userProduct = await UserProduct.find({ publish: 'true'})
-      }
-      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product , userProduct});
+
+const query = {
+    publish: { $in: [true] } // Include documents with publish: true and publish: false
+  };
+      const userProducts = await UserProduct.find(query);
   
+      res.status(200).json({
+        success: true,
+        message: `Products for Category ID `,
+        data: userProducts
+      });
     } catch (error) {
-        console.log(error)
+      console.log(error);
       res.status(500).json({ success: false, error: 'Server error' });
     }
   });
+  
+  
+
+
 //view all category and product by publish data
 router.get("/category/:categoryId/product", async (req, res) => {
     try {
-let publish ;  
-      let product;
-      let userProduct
-      if (publish = true) {
-        product = await Product.find({ publish: 'true' });
-      }
-      res.status(200).json({ success: true, message: `All Product of Publish Data is Here ..`, data: product , userProduct});
+        const categoryId = req.params.categoryId;
+
+        // Check if the category exists in the database
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
+        }
+
+       const query = {
+    publish: { $in: [true] } // Include documents with publish: true and publish: false
+  };
+      const products = await Product.find(query);
   
+      res.status(200).json({
+        success: true,
+        message: `Products for Category ID `,
+        data: products
+      });
+
     } catch (error) {
-        console.log(error)
-      res.status(500).json({ success: false, error: 'Server error' });
+        console.log(error);
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-  });
+});
+
+
 
 // GET /category - Get all categories
 router.get("/category/:categoryId/products", verifyAdminToken, isAdmin, async (req, res) => {
     try {
+        const categoryId = req.params.categoryId;
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
+        }
 
-        const product = await Product.find();
-        const userProduct = await UserProduct.find();
-        res.status(200).json({ success: true, message: `All Prodcut Here ..`, data: product, userProduct });
-
+        const products = await Product.find();
+        const userProducts = await UserProduct.find();
+        res.status(200).json({ success: true, message: `Products for Category ID ${categoryId}`, data: products , userProducts });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Server error' });
     }
@@ -70,11 +95,15 @@ router.get('/category/:categoryId/product/:productId', async (req, res) => {
         const categoryId = req.params.categoryId;
         const productId = req.params.productId;
 
+        // Check if the category and product exist in the database
         const category = await Category.findById(categoryId);
-        const product = await Product.findById(productId);
+        if (!category) {
+            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
+        }
 
-        if (!category || !product) {
-            return res.status(404).json({ success: false, error: `Category and Product not found with id ${categoryId} and ${productId}` });
+        const product = await Product.findById({ _id: productId});
+        if (!product) {
+            return res.status(404).json({ success: false, error: `Product not found with id ${productId}` });
         }
 
         res.status(200).json({ success: true, data: product });
@@ -150,22 +179,22 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         const discountAmount = price * (discountPercentage / 100);
         const discountedPrice = price - discountAmount;
         const totalPrice = Math.round(discountedPrice);
-
-        const categoryAdmin = category._id;
+        
+        // const categoryAdmin = category._id;
         const categoryUserProduct = category.name;
-
+        
         const discountAdmin = `${discountPercentage}%`;
         const discountUser = `${discountPercentage}`;
-       
+        
         const newProduct = new Product({
             name: req.body.name,
             description: req.body.description,
             imageUrl: imageUrls,
             fabric: req.body.fabric,
             event: req.body.event,
-            tags: categoryAdmin,
+            tags: [categoryUserProduct],
             type: req.body.type,
-            category: categoryAdmin ,
+            categories: [categoryUserProduct] ,
             size: req.body.size,
             bodyShape: req.body.bodyShape,
             color: req.body.color,
@@ -200,7 +229,7 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
                 stockAvailability: savedProduct.stockAvailability,
             }],
         });
-
+        
         // create a new user product using the saved product's data
         const newUserProduct = new UserProduct({
             productId: savedProduct.id, // --------------------->  no issue
@@ -221,17 +250,31 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             publish: savedProduct.publish
 
         });
-        //save the new user product to the user database
+        // //save the new user product to the user database
         await newUserProduct.save();
-
-        // Add the product to the category's products array
-        category.products.push(savedProduct._id);
+        const populatedProduct =     category.products.push(savedProduct);
+        const populatedUserProduct =     category.Userproducts.push(newUserProduct);
         await category.save();
+      
+        // // Populate the saved product and user product with categories
+        // const populatedProduct = await savedProduct.populate("categories");
+        // const populatedUserProduct = await newUserProduct.populate("categories");
+      
         res.status(201).json({
-            success: true,
-            data: newProduct,
-            userUserProduct: newUserProduct,
-        }); // Add the percentage symbol here
+          success: true,
+          data: newProduct,
+          userProduct: newUserProduct,
+        });
+
+        // // Add the product to the category's products array
+        // category.products.push(savedProduct._id);
+        // category.Userproducts.push(newUserProduct._id);
+        // await category.save();
+        // res.status(201).json({
+        //     success: true,
+        //     data: newProduct,
+        //     userUserProduct: newUserProduct,
+        // }); // Add the percentage symbol here
 
     } catch (error) {
         console.log(error)
@@ -257,7 +300,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             return res.status(404).send({ error: 'Product or Category not found' });
         }
 
-        
+        const categoryUserProduct = category.name;
         // Check if new image files are being uploaded
         let newImageUrls = product.imageUrl;
         if (req.files && req.files.photos) {
@@ -304,6 +347,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             }
             newImageUrls = await Promise.all(uploadPromises);
         }
+
         // Update the product fields
         product.name = req.body.name || product.name;
         product.publish = req.body.publish || product.publish;
@@ -311,15 +355,15 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;
         product.event = req.body.event || product.event;
-        product.category = req.body.categoryAdmin || product.category;
+        product.type = req.body.type || product.type;
+        product.categories = categoryUserProduct || product.categories;
+        product.tags = categoryUserProduct || product.tags;
         product.size = req.body.size || product.size;
         product.bodyShape = req.body.bodyShape || product.bodyShape;
         product.color = req.body.color || product.color;
-        product.clothMeasurement =
-        req.body.clothMeasurement || product.clothMeasurement;
+        product.clothMeasurement = req.body.clothMeasurement || product.clothMeasurement;
         product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
-        product.stockAvailability =
-        req.body.stockAvailability || product.stockAvailability;
+        product.stockAvailability = req.body.stockAvailability || product.stockAvailability;
         product.age = req.body.age || product.age;
         product.discount = req.body.discount || product.discount;
         product.price = parseFloat(req.body.price) || product.price;
@@ -336,7 +380,6 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         const savedProduct = await product.save();
         
         const discountUser = `${discountPercentage}`;
-        const categoryUserProduct = category.name;
         // update the user product object
         const variations = [];
         
@@ -365,6 +408,7 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
             userProduct.name = savedProduct.name;
             // userProduct.discount = savedProduct.discount;
             userProduct.discount = discountUser;
+            // userProduct.categories = savedProduct.categories;
             userProduct.categories = categoryUserProduct;
             userProduct.type = savedProduct.type;
             userProduct.publish = savedProduct.publish;
@@ -383,14 +427,23 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         }
         savedProduct.discount = `${savedProduct.discount}`;
 
-        // Update the product in the category's products array
-        const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
-        category.products[productIndex] = savedProduct._id;
+          // Update the product in the category's products array
+    const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
+    category.products[productIndex] = savedProduct._id;
+    const UserproductIndex = category.Userproducts.findIndex((p) => p._id.toString() === productId);
+    category.Userproducts[UserproductIndex] = userProduct._id;
 
-        await category.save();
-        // Include the percentage symbol in the discount field of the response
+    // Save the updated category
+    const savedCategory = await category.save();
 
-        res.status(200).json({ success: true, data: savedProduct, newUserProduct: userProduct });
+    // Retrieve the updated category with populated products
+    const updatedCategory = await Category.findById(categoryId).populate('products');
+    const updatedCategoryUser = await Category.findById(categoryId).populate('UserProduct');
+
+        res.status(200).json({ success: true, data: savedProduct,
+            userProduct: userProduct,
+            // category: updatedCategory, updatedCategoryUser
+        });
 
     } catch (error) {
         console.log(error)
@@ -455,8 +508,6 @@ router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAd
         res.status(500).json({ error: 'Server error' });
     }
 });
-
-
 
 
 

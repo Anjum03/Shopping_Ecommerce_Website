@@ -17,26 +17,38 @@ cloudinary.config({
 
 
 //view all category by publish data
-router.get("/category", async (req, res) => {
+router.get('/category', async (req, res) => {
   try {
-let publish ;
-    let categories;
-    if (publish = true) {
-      categories = await Category.find({ publish: 'true' }).populate('products');
-    }
-    res.status(200).json({ success: true, message: `All Categories of Publish Data is Here ..`, data: categories });
+    const categories = await Category.find().populate('userproducts');
 
+const query = {
+  publish: { $in: [true] } // Include documents with publish: true and publish: false
+};
+    const userProducts = await UserProduct.find(query);
+
+    res.status(200).json({
+      success: true,
+      message: `Products for Category ID `,
+      data:  userProducts
+    });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
+
 
 // GET /category - Get all categories
 router.get("/categories",verifyAdminToken, isAdmin,  async (req, res) => {
   try {
     
     const categories = await Category.find().populate('products');
-    res.status(200).json({ success: true, message: `All Categories Here ..`, data: categories });
+    const query = {
+      publish: { $in: [true] } // Include documents with publish: true and publish: false
+    };
+        const userProducts = await UserProduct.find(query);
+    
+    res.status(200).json({ success: true, message: `All Categories Here ..`, data:  userProducts  });
 
   } catch (error) {
     res.status(500).json({ success: false, error: 'Server error' });
@@ -60,13 +72,17 @@ router.get("/category/stats",  async (req, res) => {
 router.get("/category/:id", async (req, res) => {
   try {
     const categoryId = req.params.id;
-    const category = await Category.findById(categoryId).populate('products');
+    const category = await Category.findById(categoryId).populate('products').populate('UserProducts');
+    const query = {
+      publish: { $in: [true] } // Include documents with publish: true and publish: false
+    };
+        const userProducts = await UserProduct.find(query);
     
     if (!category) {
       return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
     }
     
-    res.status(200).json({ success: true, message: `Category found with id ${categoryId}`, data: category });
+    res.status(200).json({ success: true, message: `Category found with id ${categoryId}`, data: category , userProducts });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Server error' });
   }
@@ -120,11 +136,19 @@ router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
 
     // Update the category name if a new name is provided
     if (req.body.name) {
-      category.name = req.body.name;
+      const newCategoryName = req.body.name;
+
+      // Update the category name in associated products
+      await Product.updateMany({ categories: category.name }, { $set: { "categories.$": newCategoryName } });
+      await Product.updateMany({ tags: category.name }, { $set: { "tags.$": newCategoryName } });
+
+      // Update the category name in associated user products
+      await UserProduct.updateMany({ categories: category.name }, { $set: { "categories.$": newCategoryName } });
+      await UserProduct.updateMany({ tags: category.name }, { $set: { "tags.$": newCategoryName } });
+
+      category.name = newCategoryName;
     }
-    if (req.body.publish) {
-      category.publish = req.body.publish;
-    }
+
     // Update the category image if a new image is provided
     if (req.files && req.files.photo) {
       const file = req.files.photo;
@@ -140,20 +164,82 @@ router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
             return;
           }
 
-          category.imageUrl = result.url;
+          const newImageUrl = result.url;
 
-          const updatedCategory = await category.save();
-          res.status(200).json({ success: true, data: updatedCategory });
+          // Update the category image in associated products
+          await Product.updateMany({ categories: category.imageUrl }, { $set: { imageUrl: newImageUrl } });
+          await Product.updateMany({ tags: category.imageUrl }, { $set: { imageUrl: newImageUrl } });
+
+          // Update the category image in associated user products
+          await UserProduct.updateMany({ categories: category.imageUrl }, { $set: { "previewImages.$[elem]": newImageUrl } }, { arrayFilters: [{ "elem": { $in: category.imageUrl } }] });
+          await UserProduct.updateMany({ tags: category.imageUrl }, { $set: { "tags.$[elem]": newImageUrl } }, { arrayFilters: [{ "elem": { $in: category.imageUrl } }] });
+
+          category.imageUrl = newImageUrl;
         }
       );
-    } else {
-      const updatedCategory = await category.save();
-      res.status(200).json({ success: true, data: updatedCategory });
     }
+
+    // Update the category publish status if provided
+    if (req.body.publish !== undefined) {
+      const newPublishStatus = req.body.publish;
+
+      // Update the category publish status in associated products
+      await Product.updateMany({ categories: category.publish}, { $set: { publish: newPublishStatus } });
+      await Product.updateMany({ tags: category.publish}, { $set: { publish: newPublishStatus } });
+
+      // Update the category publish status in associated user products
+      await UserProduct.updateMany({ categories: category.publish }, { $set: { publish: newPublishStatus } });
+      await UserProduct.updateMany({ tags: category.publish }, { $set: { publish: newPublishStatus } });
+
+      category.publish = newPublishStatus;
+    }
+
+    // Save the updated category to the database
+    await category.save();
+
+    res.status(200).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
+// router.put("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
+//   try {
+//     const categoryId = req.params.id;
+//     const category = await Category.findById(categoryId);
+
+//     if (!category) {
+//       return res.status(404).json({ success: false, error: "Category not found" });
+//     }
+
+//     // Update the category name if a new name is provided
+//     if (req.body.name) {
+//       const oldCategoryName = category.name;
+//       const newCategoryName = req.body.name;
+
+//       category.name = newCategoryName;
+
+//       // Save the updated category to the database
+//       const updatedCategory = await category.save();
+
+//       // Update the category name in associated products
+//       await Product.updateMany({ categories: oldCategoryName }, { $set: { "categories.$": newCategoryName } });
+
+//       // Update the category name in associated user products
+//       await UserProduct.updateMany({ categories: oldCategoryName }, { $set: { "categories.$": newCategoryName } });
+
+//       res.status(200).json({ success: true, data: updatedCategory });
+//     } else {
+//       // If no name update, simply save the category
+//       const updatedCategory = await category.save();
+//       res.status(200).json({ success: true, data: updatedCategory });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: "Server error" });
+//   }
+// });
+
+
 
 
 
@@ -174,11 +260,11 @@ router.delete("/category/:id", verifyAdminToken, isAdmin, async (req, res) => {
       await cloudinary.uploader.destroy(publicId);
     }
 
-    await Category.deleteOne({ _id: categoryId });
-    await Product.deleteMany({ category: categoryId });
-    await UserProduct.deleteMany({ categories: category.name });
+    const deleteData =   await Category.deleteOne({ _id: categoryId });
+    const deleteDataProduct =  await Product.deleteMany({ categories: category.name });
+    const deleteDataUserProduct =   await UserProduct.deleteMany({ categories: category.name });
 
-    res.status(200).json({ success: true, data: category  });
+    res.status(200).json({ success: true, data: deleteData , deleteDataProduct, deleteDataUserProduct  });
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, error: "Server error" });
