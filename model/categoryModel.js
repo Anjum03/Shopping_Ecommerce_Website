@@ -1,25 +1,25 @@
 
 const mongoose = require('mongoose');
 
-const categorySchema = new mongoose.Schema({
-  name: {
-    type: String,
+const categorySchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+    },
+    imageUrl: {
+      type: String,
+    },
+    userProducts: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'UserProduct', populate: true }
+    ],
+    publish: {
+      type: Boolean,
+    },
   },
-  imageUrl: {
-    type: String,
-  },
-  products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' ,
-  populate: {
-    path: 'price'
-  }}],
-  Userproducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'UserProduct' ,
-  populate: {
-    path: 'price'
-  }}],
-  publish: {
-    type: Boolean,
-  },
-  
-},{timestamps: true});
+  {
+    timestamps: true,
+    strictPopulate: false, // Move this line within the same object
+  }
+);
 
 module.exports = mongoose.model('Category', categorySchema);

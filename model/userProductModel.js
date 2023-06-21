@@ -3,9 +3,8 @@ const mongoose = require('mongoose');
 
 const userProductSchema = new mongoose.Schema({
 
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
-  name: { type: String ,   },
-   //product name
+  // productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
+  name: { type: String ,   },//product name
   event: String, //product event
   discount: Number, //product discount
   type: [String], //trending , featured
@@ -15,6 +14,7 @@ const userProductSchema = new mongoose.Schema({
   previewImages: [String], //multiple  or 4 images
   excerpt: String, //product description
   bodyShape: String,
+  totalPrice : Number,
   age: String,
   clothMeasurement: String,
   returnPolicy: Number,
@@ -38,8 +38,10 @@ const userProductSchema = new mongoose.Schema({
         {
         _id: false,
         name: String, // product size
+        // stockAvailability: Number, //product stockAvaliablity
         stockAvailability: Number, //product stockAvaliablity
-      }],
+      }
+    ],
     }
     //next color start as per above structure
   ],

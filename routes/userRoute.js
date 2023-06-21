@@ -72,7 +72,8 @@ router.post('/login', async (req, res) => {
           success: true,
           token,
           isAdmin,
-          message: isAdmin ? 'Admin logged in successfully' : 'User logged in successfully',
+          message: isAdmin ? 'Admin logged in successfully' : 'User logged in successfully'
+          , data : user
         });
       } catch (error) {
         res.status(500).json({ success: false, error: 'Server error' });
@@ -144,6 +145,22 @@ router.delete('/user/:id',verifyAdminToken, isAdmin,verifyUserToken,  async (req
     }
 });
 
+
+
+//get by id
+router.get('/user/:id',verifyUserToken,  async (req, res) => {
+    try {
+        const oneUser = await User.findById(req.params.id);
+
+        if (!oneUser) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        res.status(200).json({ success: true, data: oneUser });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
 
 
 module.exports = router;

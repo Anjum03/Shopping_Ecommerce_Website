@@ -8,9 +8,10 @@ const productSchema = new mongoose.Schema({
   imageUrl: [String],
   fabric: String,
   event: String,
-  category: [{ type: String ,}],
+  // categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
+  categories: [{ type: String ,} , ],
   tags: [String],
-  type: String,
+  type:[ String],
   size: String,
   bodyShape: String,
   color: String,
@@ -36,13 +37,14 @@ productSchema.post('save', async function (doc, next) {
     }
     
     const userProduct = new UserProduct({
-      // productId: doc._id, // set the productId field to the _id of the parent Product document      name: doc.name,
+      productId: doc._id, // set the productId field to the _id of the parent Product document      name: doc.name,
       discount: doc.discount.map(Number),
       // type: [String ], //featured , trending
       type: doc.type, //featured , trending
+      // categories: doc.category,
+      categories: doc.categories ,
       event: doc.event,
-      categories: doc.category,
-      tags: doc.category,
+      tags: doc.categories,
       age: doc.age,
       type: doc.category,
       thumbs: doc.imageUrl.slice(0, 2),

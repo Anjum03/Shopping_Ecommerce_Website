@@ -4,9 +4,87 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const Purchase = require("../model/purchaseModel");
-const Product = require("../model/productModel");
+const Product = require("../model/userProductModel");
+// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
-const Cart = require("../model/cartModel");
+// const Cart = require("../model/cartModel");
+
+// Create purchase order record
+router.post('/purchase', verifyUserToken, async (req, res) => {
+  try {
+    // const userId = req.user._id;
+    const productId = req.body.productId;
+    const quantity = parseInt(req.body.quantity);
+
+    if (isNaN(quantity) || quantity <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid quantity' });
+    }
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    const totalPrice = quantity * product.totalPrice;
+
+    if (isNaN(totalPrice) || totalPrice <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid total price' });
+    }
+
+    const existingPurchase = await Purchase.findOne({
+      // userId,
+      'items.productId': productId,
+    });
+
+    if (existingPurchase) {
+      existingPurchase.quantity += quantity ;
+      existingPurchase.totalPrice += totalPrice;
+      await existingPurchase.save();
+
+      // Stripe create customer 
+      // stripe.charges.create({
+      //   amount: totalPrice,
+      //   source: req.body.stripeTokenId,
+      //   currency: 'usd',
+      // }).then(function() {
+      //   // console.log(  'stripe source :   ' ,source)
+      //   console.log('Charge Successful');
+      //   res.json({ message: 'Successfully purchased items' });
+      // }).catch(function(error) {
+      //   console.log('Charge Failed:', error);
+      //   res.status(500).end();
+      // });
+
+      res.status(200).json({
+        success: true, message: 'Purchase updated', data: {
+          purchase: existingPurchase,
+        }
+      });
+    } else {
+      const purchase = new Purchase({
+        // userId: req.user._id,
+        items: [{
+          productId: productId,
+          quantity: quantity,
+          price: product.totalPrice, // Assuming the product has a 'totalPrice' field
+        }],
+        totalPrice: totalPrice,
+      });
+
+      await purchase.save();
+
+      res.status(200).json({
+        success: true, message: 'Purchase created', data: {
+          purchase: purchase,
+        }
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: 'Server Error', data: error });
+  }
+});
 
 
 
@@ -31,103 +109,177 @@ router.get('/purchase',verifyUserToken,verifyAdminToken ,async (req, res) => {
 
 
 //create purchase order record
+// router.post('/purchase', verifyUserToken, async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const productId = req.body.productId;
+//     const quantity = parseInt(req.body.quantity);
 
-router.post('/purchase', verifyUserToken, async (req, res) => {
+//     if (isNaN(quantity) || quantity <= 0) {
+//       return res.status(400).json({ success: false, message: 'Invalid quantity' });
+//     }
 
-  try {
+//     const product = await Product.findById(productId);
 
-    userId = req.user._id;
-    //get user's cart
-    const cart = await Cart.findOne(userId).populate('items.productId');
-    if (!cart) {
-      // handle the case where the cart is not found
-      return res.status(404).json({ message: "Cart not found" });
-    }
+//     if (!product) {
+//       return res.status(404).json({ success: false, message: 'Product not found' });
+//     }
 
-    // Find the item to be purchased
-    const productId = req.body.productId;
-    const item = cart.items.find((item) => item.productId._id.toString() === productId);
+//     const totalPrice = quantity * product.totalPrice;
 
-    if (!item) {
-      return res.status(400).json({ success: false, message: 'Item not found in cart' });
-    }
+//     if (isNaN(totalPrice) || totalPrice <= 0) {
+//       return res.status(400).json({ success: false, message: 'Invalid total price' });
+//     }
 
-    // Check if the quantity is a valid number
-    const quantity = parseInt(req.body.quantity);
-    if (isNaN(quantity) || quantity <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid quantity' });
-    }
+//     const existingPurchase = await Purchase.findOne({
+//       userId,
+//       'items.productId': productId,
+//     });
 
-    // Calculate the total price of the item
-    const totalPrice = quantity * item.productId.totalPrice;
+//     if (existingPurchase) {
+//       existingPurchase.totalPrice += totalPrice;
+//       await existingPurchase.save();
 
-    // Check if the item has already been purchased
-    const existingPurchase = await Purchase.findOne({
-      userId,
-      'items.productId._id': item.productId._id,
-    });
+//       // Stripe create customer 
+//       stripe.charges.create({
+//         amount: totalPrice,
+//         source: req.body.stripeTokenId,
+//         currency: 'usd'
+//       }).then(function() {
+//         console.log('Charge Successful');
+//         res.json({ message: 'Successfully purchased items' });
+//       }).catch(function() {
+//         console.log('Charge Failed');
+//         res.status(500).end();
+//       });
 
-    if (existingPurchase) {
-      // Update the existing purchase with a new entry for the purchased quantity
-      existingPurchase.items.push({ productId: item.productId, quantity: quantity });
-      existingPurchase.totalPrice += totalPrice;
-      await existingPurchase.save();
+//       res.status(200).json({
+//         success: true, message: 'Purchase updated', data: {
+//           purchase: existingPurchase,
+//         }
+//       });
+//     } else {
+//       const purchase = new Purchase({
+//         userId: req.user._id,
+//         items: [{
+//           productId: productId,
+//           quantity: quantity,
+//         }],
+//         totalPrice: totalPrice,
+//         createdAt: new Date(),
+//       });
+
+//       await purchase.save();
+
+//       res.status(200).json({
+//         success: true, message: 'Purchase created', data: {
+//           purchase: purchase,
+//         }
+//       });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, message: 'Server Error', data: error });
+//   }
+// });
+//// ===========================?
+
+// router.post('/purchase', verifyUserToken, async (req, res) => {
+
+//   try {
+
+//     userId = req.user._id;
+//     //get user's cart
+//     const cart = await Cart.findOne(userId).populate('items.productId');
+//     if (!cart) {
+//       // handle the case where the cart is not found
+//       return res.status(404).json({ message: "Cart not found" });
+//     }
+
+//     // Find the item to be purchased
+//     const productId = req.body.productId;
+//     const item = cart.items.find((item) => item.productId._id.toString() === productId);
+
+//     if (!item) {
+//       return res.status(400).json({ success: false, message: 'Item not found in cart' });
+//     }
+
+//     // Check if the quantity is a valid number
+//     const quantity = parseInt(req.body.quantity);
+//     if (isNaN(quantity) || quantity <= 0) {
+//       return res.status(400).json({ success: false, message: 'Invalid quantity' });
+//     }
+
+//     // Calculate the total price of the item
+//     const totalPrice = quantity * item.productId.totalPrice;
+
+//     // Check if the item has already been purchased
+//     const existingPurchase = await Purchase.findOne({
+//       userId,
+//       'items.productId._id': item.productId._id,
+//     });
+
+//     if (existingPurchase) {
+//       // Update the existing purchase with a new entry for the purchased quantity
+//       existingPurchase.items.push({ productId: item.productId, quantity: quantity });
+//       existingPurchase.totalPrice += totalPrice;
+//       await existingPurchase.save();
       
-      // Remove the purchased item from the cart
-      cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+//       // Remove the purchased item from the cart
+//       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
 
-      await cart.save();
+//       await cart.save();
 
-      res.status(200).json({
-        success: true, message: 'Purchase updated', data: {
-          purchase: existingPurchase,
-          remainingQuantity: remainingQuantity,
-          remainingTotalPrice: remainingTotalPrice,
-        }
-      });
-    } else {
+//       res.status(200).json({
+//         success: true, message: 'Purchase updated', data: {
+//           purchase: existingPurchase,
+//           remainingQuantity: remainingQuantity,
+//           remainingTotalPrice: remainingTotalPrice,
+//         }
+//       });
+//     } else {
       
-      // Create a new purchase record
-      const purchase = new Purchase({
-        userId: req.user._id,
-        items: [{
-          productId: productId,
-          quantity: quantity,
-        }],
-        totalPrice: totalPrice,
-        createdAt: new Date(),
-      });
+//       // Create a new purchase record
+//       const purchase = new Purchase({
+//         userId: req.user._id,
+//         items: [{
+//           productId: productId,
+//           quantity: quantity,
+//         }],
+//         totalPrice: totalPrice,
+//         createdAt: new Date(),
+//       });
 
-      await purchase.save();
+//       await purchase.save();
 
-      // Remove the purchased item from the cart
-      cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
+//       // Remove the purchased item from the cart
+//       cart.items = cart.items.filter((cartItem) => cartItem._id.toString() !== item._id.toString());
 
-      // Save the changes to the cart
-      await cart.save();
+//       // Save the changes to the cart
+//       await cart.save();
 
-      // Update the purchased quantity and total price in the cart
-      item.quantity -= quantity;
-      cart.totalPrice -= totalPrice;
+//       // Update the purchased quantity and total price in the cart
+//       item.quantity -= quantity;
+//       cart.totalPrice -= totalPrice;
 
-      // Calculate the remaining quantity and total price of the item in the cart
-      const remainingQuantity = item.quantity;
-      const remainingTotalPrice = remainingQuantity * item.productId.totalPrice;
+//       // Calculate the remaining quantity and total price of the item in the cart
+//       const remainingQuantity = item.quantity;
+//       const remainingTotalPrice = remainingQuantity * item.productId.totalPrice;
 
-      res.status(200).json({
-        success: true, message: `Purchase Created...`, data: {
-          purchase: purchase,
-          remainingQuantity: remainingQuantity,
-          remainingTotalPrice: remainingTotalPrice,
-        }
-      });
-    }
-  }
+//       res.status(200).json({
+//         success: true, message: `Purchase Created...`, data: {
+//           purchase: purchase,
+//           remainingQuantity: remainingQuantity,
+//           remainingTotalPrice: remainingTotalPrice,
+//         }
+//       });
+//     }
+//   }
 
-  catch (error) {
-    res.status(500).json({ success: false, message: `Server Error`, data: error });
-  }
-});
+//   catch (error) {
+//     res.status(500).json({ success: false, message: `Server Error`, data: error });
+//   }
+// });
 
 
 

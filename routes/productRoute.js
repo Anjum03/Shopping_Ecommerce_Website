@@ -179,22 +179,21 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
         const discountAmount = price * (discountPercentage / 100);
         const discountedPrice = price - discountAmount;
         const totalPrice = Math.round(discountedPrice);
-        
-        // const categoryAdmin = category._id;
+
         const categoryUserProduct = category.name;
-        
+
         const discountAdmin = `${discountPercentage}%`;
         const discountUser = `${discountPercentage}`;
-        
+       
         const newProduct = new Product({
             name: req.body.name,
             description: req.body.description,
             imageUrl: imageUrls,
             fabric: req.body.fabric,
             event: req.body.event,
-            tags: [categoryUserProduct],
+            tags:categoryUserProduct ,
             type: req.body.type,
-            categories: [categoryUserProduct] ,
+            categories: categoryUserProduct ,
             size: req.body.size,
             bodyShape: req.body.bodyShape,
             color: req.body.color,
@@ -229,18 +228,18 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
                 stockAvailability: savedProduct.stockAvailability,
             }],
         });
-        
+
         // create a new user product using the saved product's data
         const newUserProduct = new UserProduct({
             productId: savedProduct.id, // --------------------->  no issue
             name: savedProduct.name,
-            age: savedProduct.age,
             discount: discountUser,
             type: savedProduct.type,
             event: savedProduct.event,
             categories: categoryUserProduct,
             tags: categoryUserProduct,
-            thumbs: savedProduct.imageUrl.slice(0, 2),
+            thumbs: savedProduct.imageUrl.slice(0,1),
+            age : savedProduct.age ,
             previewImages: savedProduct.imageUrl,
             excerpt: savedProduct.description,
             bodyShape: savedProduct.bodyShape,
@@ -250,31 +249,17 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
             publish: savedProduct.publish
 
         });
-        // //save the new user product to the user database
+        //save the new user product to the user database
         await newUserProduct.save();
-        const populatedProduct =     category.products.push(savedProduct);
-        const populatedUserProduct =     category.Userproducts.push(newUserProduct);
-        await category.save();
-      
-        // // Populate the saved product and user product with categories
-        // const populatedProduct = await savedProduct.populate("categories");
-        // const populatedUserProduct = await newUserProduct.populate("categories");
-      
-        res.status(201).json({
-          success: true,
-          data: newProduct,
-          userProduct: newUserProduct,
-        });
 
-        // // Add the product to the category's products array
-        // category.products.push(savedProduct._id);
-        // category.Userproducts.push(newUserProduct._id);
-        // await category.save();
-        // res.status(201).json({
-        //     success: true,
-        //     data: newProduct,
-        //     userUserProduct: newUserProduct,
-        // }); // Add the percentage symbol here
+        // Add the product to the category's products array
+        category.products.push(savedProduct._id);
+        await category.save();
+        res.status(201).json({
+            success: true,
+            data: newProduct,
+            userUserProduct: newUserProduct,
+        }); // Add the percentage symbol here
 
     } catch (error) {
         console.log(error)
@@ -285,22 +270,19 @@ router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (r
 
 
 //update and  Update an existing clothing product y ID
+  
 router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
-
     try {
-
-        // Get the category ID from the URL parameter
-        const { productId, categoryId } = req.params;
-
-        // Find the category in the database
-        const category = await Category.findById(categoryId);
-        const product = await Product.findById(productId);
+      const { productId, categoryId } = req.params;
+  
+      // Find the category in the database
+      const category = await Category.findById(categoryId);
+      const product = await Product.findById(productId);
+      const categoryUserProduct = category.name;
 
         if (!category || !product) {
             return res.status(404).send({ error: 'Product or Category not found' });
         }
-
-        const categoryUserProduct = category.name;
         // Check if new image files are being uploaded
         let newImageUrls = product.imageUrl;
         if (req.files && req.files.photos) {
@@ -355,36 +337,37 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         product.imageUrl = newImageUrls || product.imageUrl;
         product.fabric = req.body.fabric || product.fabric;
         product.event = req.body.event || product.event;
-        product.type = req.body.type || product.type;
-        product.categories = categoryUserProduct || product.categories;
-        product.tags = categoryUserProduct || product.tags;
+        product.categories = categoryUserProduct|| product.categories;
+        product.tags = categoryUserProduct|| product.tags;
+        product.type = req.body.type|| product.type;
         product.size = req.body.size || product.size;
         product.bodyShape = req.body.bodyShape || product.bodyShape;
         product.color = req.body.color || product.color;
-        product.clothMeasurement = req.body.clothMeasurement || product.clothMeasurement;
+        product.clothMeasurement =
+            req.body.clothMeasurement || product.clothMeasurement;
         product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
-        product.stockAvailability = req.body.stockAvailability || product.stockAvailability;
+        product.stockAvailability =
+            req.body.stockAvailability || product.stockAvailability;
         product.age = req.body.age || product.age;
-        product.discount = req.body.discount || product.discount;
+        product.discount = parseFloat(req.body.price) || product.discount;
         product.price = parseFloat(req.body.price) || product.price;
-        
+
         // Recalculate the total price if the price or discount changes
         const price = product.price;
         const discountPercentage = parseInt(product.discount.replace("%", ""));
         const discountAmount = price * (discountPercentage / 100);
         const discountedPrice = price - discountAmount;
         const totalPrice = Math.round(discountedPrice);
-        
+
         product.totalPrice = totalPrice;
-        
+
         const savedProduct = await product.save();
-        
         const discountUser = `${discountPercentage}`;
         // update the user product object
         const variations = [];
-        
-        variations.push({
-            title: savedProduct.name,
+      
+            variations.push({
+                title: savedProduct.name,
                 color: {
                     name: savedProduct.color,
                     thumb: savedProduct.color,
@@ -406,19 +389,17 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         if (userProduct) {
             userProduct.productId=  savedProduct._id,
             userProduct.name = savedProduct.name;
-            // userProduct.discount = savedProduct.discount;
-            userProduct.discount = discountUser;
-            // userProduct.categories = savedProduct.categories;
-            userProduct.categories = categoryUserProduct;
+            userProduct.discount =  discountUser;
+            userProduct.category = categoryUserProduct;
             userProduct.type = savedProduct.type;
+            userProduct.event = savedProduct.event;
+            userProduct.age = savedProduct.age;
             userProduct.publish = savedProduct.publish;
             userProduct.tags = categoryUserProduct;
-            userProduct.event = savedProduct.event;
             userProduct.thumbs = savedProduct.imageUrl;
             userProduct.previewImages = savedProduct.imageUrl;
             userProduct.excerpt = savedProduct.description;
             userProduct.bodyShape = savedProduct.bodyShape;
-            userProduct.age = savedProduct.age;
             userProduct.returnPolicy = savedProduct.returnPolicy;
             userProduct.clothMeasurement = savedProduct.clothMeasurement;
             userProduct.variations = variations;
@@ -427,29 +408,21 @@ router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin
         }
         savedProduct.discount = `${savedProduct.discount}`;
 
-          // Update the product in the category's products array
-    const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
-    category.products[productIndex] = savedProduct._id;
-    const UserproductIndex = category.Userproducts.findIndex((p) => p._id.toString() === productId);
-    category.Userproducts[UserproductIndex] = userProduct._id;
+        // Update the product in the category's products array
+        const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
+        category.products[productIndex] = savedProduct._id;
 
-    // Save the updated category
-    const savedCategory = await category.save();
+        await category.save();
+        // Include the percentage symbol in the discount field of the response
 
-    // Retrieve the updated category with populated products
-    const updatedCategory = await Category.findById(categoryId).populate('products');
-    const updatedCategoryUser = await Category.findById(categoryId).populate('UserProduct');
-
-        res.status(200).json({ success: true, data: savedProduct,
-            userProduct: userProduct,
-            // category: updatedCategory, updatedCategoryUser
-        });
+        res.status(200).json({ success: true, data: savedProduct,newUserProduct : userProduct });
 
     } catch (error) {
         console.log(error)
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
+
 
 
 
