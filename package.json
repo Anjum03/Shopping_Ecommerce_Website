@@ -20,6 +20,7 @@
     "whatsappcloudapi_wrapper": "^1.0.13"
   },
   "name": "journey-3",
+  "homepage": "http://99.79.64.2:4000/",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
