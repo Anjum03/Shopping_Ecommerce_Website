@@ -2,7 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const router = express.Router();
-const Wishlist = require("../model/wishlist.Model");
+const Wishlist = require("../model/wishlistModel");
 const Product = require("../model/userProductModel");
 // const OrderItem = require("../model/orderItemModel");
 const { verifyUserToken, } = require('../middleware/token');
