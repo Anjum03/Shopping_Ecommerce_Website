@@ -8,11 +8,10 @@ const purchaseSchema = new mongoose.Schema({
     quantity: { type: Number,  },
     price: { type: Number,  },
   } ],
-  totalPrice: { type: Number,  },
-  paymentMode: { type: String,  default: "pending",},
+  paymentMode: { type: String,  default: "card",},
   status: {
     type: String,
-    enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+    enum: ["success", "processing","pending", "Cancelled",],
     default: "pending",
   },
    
