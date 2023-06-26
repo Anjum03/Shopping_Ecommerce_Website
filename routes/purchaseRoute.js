@@ -7,323 +7,62 @@ const Purchase = require("../model/purchaseModel");
 const OrderItem = require("../model/orderItemModel");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { verifyAdminToken, isAdmin, verifyUserToken } = require('../middleware/token');
+const User = require('../model/userModel')
 
-
-
-//incompelete status
-
-// router.post('/purchase', async (req, res) => {
+// router.post('/source', async(req,res)=>{
 //   try {
-//     const { customerId, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
+//     const { customer_Id, card_Token} = req.body;
 
-//     // Retrieve the Stripe customer details
-//     const customer = await stripe.customers.retrieve(customerId,);
 
-//     if (!customer) {
-//       return res.status(404).json({ success: false, message: 'Customer not found' });
-//     }
-
-//     const { productName, productImages, productPrice, quantity,productId  } = customer.metadata;
-// console.log(`consumer meta data ` , customer.metadata)
-//     // Create a new purchase instance
-//     const purchase = new Purchase({
-//       items: [
-//         {
-//           productId: productId,
-//           productName: productName,
-//           productImages: productImages,
-//           quantity: quantity,
-//           price: productPrice,
-//         },
-//       ],
-//       paymentMode: 'card',
-//       status: 'pending',
+//     const card = await stripe.customers.createSource(customer_Id, {
+//       source: card_Token,
 //     });
 
-//     console.log(purchase)
-//     // Stripe payment flow
-//     const cardToken = await stripe.tokens.create({
-//       card: {
-//         name: card_Name,
-//         number: card_Number,
-//         exp_month: card_ExpMonth,
-//         exp_year: card_ExpYear,
-//         cvc: card_CVC,
-//       },
-//     });
-
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount: productPrice * quantity * 100, // Multiply by 100 to convert to cents
-//       currency: 'CAD',
-//       customer: customerId,
-//       payment_method_data: {
-//         type: 'card',
-//         card: {
-//           token: cardToken.id,
-//         },
-//       },
-//       off_session: true,
-//       confirm: true,
-//     });
-
-//     purchase.status = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
-//     await purchase.save();
-
-//     return res.status(200).json({
+//     res.status(200).json({
 //       success: true,
-//       message: 'Purchase created, Payment Successful',
-//       data: {
-//         purchase: purchase,
-//         customer: customer,
-//       },
-//       paymentStatus: purchase.status,
+//       message: 'Created add-card successfully',
+//       data:{  source :  card_Token.id    , 
+
+//          card: card.id
+//          }
 //     });
+
 //   } catch (error) {
 //     console.log(error);
 //     res.status(500).json({ success: false, message: 'Server Error', data: error });
 //   }
-// });
-
-
-
-//add orderitem in pusrchase
-//save in db and send in dev part
-
-
-//incompelete status
-
-// router.post('/purchase', async (req, res) => {
-//   try {
-//     const { customerId, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
-
-//     // Retrieve the Stripe customer details
-//     const customer = await stripe.customers.retrieve(customerId,);
-
-//     if (!customer) {
-//       return res.status(404).json({ success: false, message: 'Customer not found' });
-//     }
-
-//     const { productName, productImages, productPrice, quantity,productId  } = customer.metadata;
-// console.log(`consumer meta data ` , customer.metadata)
-//     // Create a new purchase instance
-//     const purchase = new Purchase({
-//       items: [
-//         {
-//           productId: productId,
-//           productName: productName,
-//           productImages: productImages,
-//           quantity: quantity,
-//           price: productPrice,
-//         },
-//       ],
-//       paymentMode: 'card',
-//       status: 'pending',
-//     });
-
-//     console.log(purchase)
-//     // Stripe payment flow
-//     const cardToken = await stripe.tokens.create({
-//       card: {
-//         name: card_Name,
-//         number: card_Number,     // last 4 digit
-//         exp_month: card_ExpMonth,
-//         exp_year: card_ExpYear,
-//         cvc: card_CVC,
-//       },
-//     });
-
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount: productPrice * quantity * 100, // Multiply by 100 to convert to cents
-//       currency: 'CAD',
-//       customer: customerId,
-//       payment_method_data: {
-//         type: 'card',
-//         card: {
-//           token: cardToken.id,
-//         },
-//       },
-//       off_session: true,
-//       confirm: true,
-//     });
-
-//     purchase.status = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
-//     await purchase.save();
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Purchase created, Payment Successful',
-//       data: {
-//         purchase: purchase,
-//         customer: customer,
-//       },
-//       paymentStatus: purchase.status,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, message: 'Server Error', data: error });
-//   }
-// });
-
-
-// router.post('/purchaseToken', async (req, res) => {
-//   try {
-//     const { customerId, cardtoken } = req.body;
-
-//     // Retrieve the Stripe customer details
-//     const customer = await stripe.customers.retrieve(customerId);
-
-//     if (!customer) {
-//       return res.status(404).json({ success: false, message: 'Customer not found' });
-//     }
-
-//     const { productName, productImages, productPrice, quantity, productId } = customer.metadata;
-
-//     // Create a new purchase instance
-//     const purchase = new Purchase({
-//       items: [
-//         {
-//           productId: productId,
-//           productName: productName,
-//           productImages: productImages,
-//           quantity: quantity,
-//           price: productPrice,
-//         },
-//       ],
-//       paymentMode: 'card',
-//       status: 'pending',
-//     });
-
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount: productPrice, // Multiply by 100 to convert to cents
-//       currency: 'CAD',
-//       customer: customerId,
-//       payment_method_data: {
-//         type: 'card',
-//         card: {
-//           token: cardtoken,
-//         },
-//       },
-//       off_session: true,
-//       confirm: true,
-//     });
-
-//     purchase.status = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
-
-//     // Update the existing user's purchase history or create a new one
-//     const existingPurchase = await Purchase.findById(customer.metadata.purchaseId);
-
-//     if (existingPurchase && customer.metadata.purchaseId !== '') {
-//       existingPurchase.items.push({
-//         productId: productId,
-//         productName: productName,
-//         productImages: productImages,
-//         quantity: quantity,
-//         price: productPrice,
-//       });
-
-//       await existingPurchase.save();
-
-//       let orderItem = await OrderItem.findOne({ purchaseId: customer.metadata.purchaseId });
-
-//       if (!orderItem) {
-//         return res.status(404).json({ success: false, message: 'Existing order item not found' });
-//       }
-
-//       orderItem.items.push({
-//         purchaseId: customer.metadata.purchaseId,
-//         productId: productId,
-//         quantity: quantity,
-//         price: productPrice,
-//       });
-
-//       orderItem.totalPrice += productPrice * quantity;
-
-//       await orderItem.save();
-//     } else {
-//       await purchase.save();
-
-//       const updatedMetadata = { ...customer.metadata, purchaseId: purchase._id.toString() };
-//       await stripe.customers.update(customerId, { metadata: updatedMetadata });
-
-//       const orderItem = new OrderItem({
-//         purchaseId: purchase._id.toString(),
-//         items: [
-//           {
-//             purchaseId: purchase._id,
-//             productId: productId,
-//             quantity: quantity,
-//             price: productPrice,
-//           },
-//         ],
-//         totalPrice: productPrice,
-//       });
-
-//       await orderItem.save();
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Purchase created, Payment Successful',
-//       data: {
-//         purchase: purchase,
-//         customer: customer,
-//       },
-//       paymentStatus: purchase.status,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, message: 'Server Error', data: error });
-//   }
-// });
-
-router.post('/source', async(req,res)=>{
-  try {
-    const { customer_Id, card_Token} = req.body;
-
-
-    const card = await stripe.customers.createSource(customer_Id, {
-      source: card_Token,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Created add-card successfully',
-      data:{  source :  card_Token.id    , 
-
-         card: card.id
-         }
-    });
-
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: 'Server Error', data: error });
-  }
-})
+// })
 
 
 
 // //customerID
 // router.post('/purchaseCustomer', async (req, res) => {
 //   try {
-//     const { customerId } = req.body;
+//     const { customer_Id, cardId } = req.body;
 
-//     const customer = await stripe.customers.retrieve(customerId, {
-//       expand: ['sources'],
-//     });
+//     const customer = await stripe.customers.retrieve(customer_Id);
 
 //     if (!customer) {
 //       return res.status(404).json({ success: false, message: 'Customer not found' });
 //     }
+//     const userEmail = customer.metadata.email;
+
+//     // Find the user in your registered user database based on the email
+//     const user = await User.findOne({ email: userEmail });
+
+//     if (!user) {
+//       return res.status(401).json({ success: false, message: 'User not logged in' });
+//     }
+
+//     const userId = user._id;
 
 //     const { productName, productImages, productPrice, quantity, productId } = customer.metadata;
 
-//     if (!customer.hasOwnProperty('sources') || !customer.sources.data.length) {
-//       return res.status(400).json({ success: false, message: 'No payment sources found for the customer' });
-//     }
 
 //     const purchase = new Purchase({
 //       items: [
 //         {
+//           userId: userId,
 //           productId: productId,
 //           productName: productName,
 //           productImages: productImages,
@@ -335,13 +74,11 @@ router.post('/source', async(req,res)=>{
 //       status: 'pending',
 //     });
 
-//     const paymentMethod = customer.sources.data[0].id;
-
 //     const paymentIntent = await stripe.paymentIntents.create({
 //       amount: productPrice,
 //       currency: 'CAD',
-//       customer: customerId,
-//       payment_method: paymentMethod,
+//       customer: customer_Id,
+//       payment_method: cardId,
 //       off_session: true,
 //       confirm: true,
 //     });
@@ -385,9 +122,10 @@ router.post('/source', async(req,res)=>{
 //       await purchase.save();
 
 //       const updatedMetadata = { ...customer.metadata, purchaseId: purchase._id.toString() };
-//       await stripe.customers.update(customerId, { metadata: updatedMetadata });
+//       await stripe.customers.update(customer_Id, { metadata: updatedMetadata });
 
 //       const orderItem = new OrderItem({
+//         userId: userId, // Add the userId here if available
 //         purchaseId: purchase._id.toString(),
 //         items: [
 //           {
@@ -420,12 +158,13 @@ router.post('/source', async(req,res)=>{
 
 
 
+
 //add orderitem in pusrchase
 //save in db and send in dev part cardId
 
 router.post('/purchase', async (req, res) => {
   try {
-    const { customer_Id, card_Token}  = req.body;
+    const { customer_Id, card_Token } = req.body;
 
     // Retrieve the Stripe customer details
     const customer = await stripe.customers.retrieve(customer_Id);
@@ -434,6 +173,17 @@ router.post('/purchase', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
+    const userEmail = customer.metadata.email;
+
+    // Find the user in your registered user database based on the email
+    const user = await User.findOne({ email: userEmail });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not logged in' });
+    }
+
+    const userId = user._id;
+
     const { productName, productImages, productPrice, quantity, productId } = customer.metadata;
 
     // Create a new source for the customer
@@ -441,28 +191,27 @@ router.post('/purchase', async (req, res) => {
       source: card_Token,
     });
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: productPrice, // Multiply by 100 to convert to cents
-      currency: 'CAD',
-      customer: customer_Id,
-      payment_method: card.id,
-      off_session: true,
-      confirm: true,
-    });
+    // Find the existing purchase or create a new one
+    let purchase = await Purchase.findOne({ userId: userId, status: 'success' });
 
-    // Create a new purchase instance
-    const purchase = new Purchase({
-      items: [
-        {
-          productId: productId,
-          productName: productName,
-          productImages: productImages,
-          quantity: quantity,
-          price: productPrice,
-        },
-      ],
-      paymentMode: 'card',
-      status: paymentIntent.status === 'succeeded' ? 'success' : 'failed',
+    if (!purchase) {
+      // Create a new purchase instance
+      purchase = new Purchase({
+        userId: userId,
+        items: [],
+        paymentMode: 'card',
+        status: 'pending',
+      });
+    }
+
+    // Add the new item to the purchase
+    purchase.items.push({
+      userId: userId,
+      productId: productId,
+      productName: productName,
+      productImages: productImages,
+      quantity: quantity,
+      price: productPrice,
     });
 
     // Save the purchase to the database
@@ -472,22 +221,48 @@ router.post('/purchase', async (req, res) => {
     const updatedMetadata = { ...customer.metadata, purchaseId: purchase._id.toString() };
     await stripe.customers.update(customer_Id, { metadata: updatedMetadata });
 
-    // Create a new order item
-    const orderItem = new OrderItem({
-      purchaseId: purchase._id.toString(),
-      items: [
-        {
-          purchaseId: purchase._id,
-          productId: productId,
-          quantity: quantity,
-          price: productPrice,
-        },
-      ],
-      totalPrice: productPrice * quantity,
+    // Find the existing order item or create a new one
+    let orderItem = await OrderItem.findOne({ purchaseId: purchase._id });
+
+    if (!orderItem) {
+      // Create a new order item
+      orderItem = new OrderItem({
+        userId: userId,
+        purchaseId: purchase._id.toString(),
+        items: [],
+        totalPrice: 0,
+      });
+    }
+
+    // Add the new item to the order item
+    orderItem.items.push({
+      purchaseId: purchase._id,
+      productId: productId,
+      quantity: quantity,
+      price: productPrice,
     });
+
+    // Update the total price of the order item
+    orderItem.totalPrice += productPrice * quantity;
 
     // Save the order item to the database
     await orderItem.save();
+
+    // Create a payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: productPrice, // Multiply by 100 to convert to cents
+      currency: 'CAD',
+      customer: customer_Id,
+      payment_method: card.id,
+      off_session: true,
+      confirm: true,
+    });
+
+    // Update the purchase status based on the payment intent status
+    purchase.status = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
+
+    // Save the updated purchase to the database
+    await purchase.save();
 
     return res.status(200).json({
       success: true,
@@ -503,232 +278,6 @@ router.post('/purchase', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error', data: error });
   }
 });
-
-
-
-
-// Route to handle the purchase and payment
-// router.post('/purchase', verifyUserToken, async (req, res) => {
-//   try {
-//     const { customerId, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
-//     const productId = req.body.productId;
-//     const quantity = parseInt(req.body.quantity);
-
-//     if (isNaN(quantity) || quantity <= 0) {
-//       return res.status(400).json({ success: false, message: 'Invalid quantity' });
-//     }
-
-//     const product = await Product.findById(productId);
-
-//     if (!product) {
-//       return res.status(404).json({ success: false, message: 'Product not found' });
-//     }
-
-//     const totalPrice = quantity * product.totalPrice;
-
-//     if (isNaN(totalPrice) || totalPrice <= 0) {
-//       return res.status(400).json({ success: false, message: 'Invalid total price' });
-//     }
-
-//     const existingPurchase = await Purchase.findOne({
-//       'items.productId': productId,
-//     });
-
-//     if (existingPurchase) {
-//       existingPurchase.quantity += quantity;
-//       existingPurchase.totalPrice += totalPrice;
-//       await existingPurchase.save();
-
-//       // Stripe payment flow
-//       const cardToken = await stripe.tokens.create({
-//         card: {
-//           name: card_Name,
-//           number: card_Number,
-//           exp_month: card_ExpMonth,
-//           exp_year: card_ExpYear,
-//           cvc: card_CVC,
-//         },
-//       });
-
-//       const paymentIntent = await stripe.paymentIntents.create({
-//         amount: 900,
-//         currency: 'usd',
-//         customer: customerId,
-//         payment_method_data: {
-//           type: 'card',
-//           card: {
-//             token: cardToken.id,
-//           },
-//         },
-//         off_session: true,
-//         confirm: true,
-//       });
-
-//       if (paymentIntent.status === 'succeeded') {
-//         existingPurchase.paymentStatus = 'success';
-//         await existingPurchase.save();
-//         return res.status(200).json({ success: true, message: 'Purchase updated' });
-//       } else {
-//         // Payment failed
-//         return res.status(400).json({ success: false, message: 'Payment failed' });
-//       }
-//     } else {
-//       const purchase = new Purchase({
-//         items: [{
-//           productId: productId,
-//           quantity: quantity,
-//           price: product.totalPrice,
-//         }],
-//         totalPrice: totalPrice,
-//         paymentStatus: 'pending',
-//       });
-
-//       await purchase.save();
-
-//       // Stripe customer creation
-//       const customer = await stripe.customers.create({
-//         firstName: req.user.firstName, // Assuming user details are available in req.user
-//         email: req.user.email,
-//       });
-
-//       return res.status(200).json({
-//         success: true,
-//         message: 'Purchase created',
-//         data: {
-//           purchase: purchase,
-//           customer: customer,
-//         },
-//       });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, message: 'Server Error', data: error });
-//   }
-// }); 
-/////////////////////////////save in db go with the flow
-// router.post('/purchase', verifyUserToken, async (req, res) => {
-//   try {
-//     const { customerId, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
-//     const productId = req.body.productId;
-//     const quantity = parseInt(req.body.quantity);
-
-//     if (isNaN(quantity) || quantity <= 0) {
-//       return res.status(400).json({ success: false, message: 'Invalid quantity' });
-//     }
-
-//     const product = await Product.findById(productId);
-
-//     if (!product) {
-//       return res.status(404).json({ success: false, message: 'Product not found' });
-//     }
-
-//     const totalPrice = quantity * product.totalPrice;
-
-//     if (isNaN(totalPrice) || totalPrice <= 0) {
-//       return res.status(400).json({ success: false, message: 'Invalid total price' });
-//     }
-
-//     let existingPurchase = await Purchase.findOne({
-//       'items.productId': productId,
-//     });
-
-//     if (existingPurchase) {
-//       existingPurchase.quantity += quantity;
-//       existingPurchase.totalPrice += totalPrice;
-
-//       // Stripe payment flow
-//       const cardToken = await stripe.tokens.create({
-//         card: {
-//           name: card_Name,
-//           number: card_Number,
-//           exp_month: card_ExpMonth,
-//           exp_year: card_ExpYear,
-//           cvc: card_CVC,
-//         },
-//       });
-
-//       const paymentIntent = await stripe.paymentIntents.create({
-//         amount: 900,
-//         currency: 'usd',
-//         customer: customerId,
-//         payment_method_data: {
-//           type: 'card',
-//           card: {
-//             token: cardToken.id,
-//           },
-//         },
-//         off_session: true,
-//         confirm: true,
-//       });
-
-//       existingPurchase.paymentStatus = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
-//       await existingPurchase.save();
-        
-//       return res.status(200).json({ success: true, message: 'Purchase updated', paymentStatus: existingPurchase.paymentStatus });
-
-//     } else {
-//       const purchase = new Purchase({
-//         items: [
-//           {
-//             productId: productId,
-//             quantity: quantity,
-//             price: product.totalPrice,
-//           },
-//         ],
-//         totalPrice: totalPrice,
-//         paymentStatus: 'pending',
-//       });
-
-//       // Stripe payment flow
-//       const cardToken = await stripe.tokens.create({
-//         card: {
-//           name: card_Name,
-//           number: card_Number,
-//           exp_month: card_ExpMonth,
-//           exp_year: card_ExpYear,
-//           cvc: card_CVC,
-//         },
-//       });
-
-//       const paymentIntent = await stripe.paymentIntents.create({
-//         amount: 900,
-//         currency: 'usd',
-//         customer: customerId,
-//         payment_method_data: {
-//           type: 'card',
-//           card: {
-//             token: cardToken.id,
-//           },
-//         },
-//         off_session: true,
-//         confirm: true,
-//       });
-
-//       purchase.paymentStatus = paymentIntent.status === 'succeeded' ? 'success' : 'failed';
-//       await purchase.save();
-
-//       // Stripe customer creation
-//       const customer = await stripe.customers.create({
-//         firstName: req.user.firstName, // Assuming user details are available in req.user
-//         email: req.user.email,
-//       });
-
-//       return res.status(200).json({
-//         success: true,
-//         message: 'Purchase created',
-//         data: {
-//           purchase: purchase,
-//           customer: customer,
-//         },
-//         paymentStatus: purchase.paymentStatus
-//       });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, message: 'Server Error', data: error });
-//   }
-// });
-
 
 
 
