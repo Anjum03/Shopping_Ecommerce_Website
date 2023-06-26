@@ -19,8 +19,10 @@ const helpArticlesSchema = new mongoose.Schema({
   adminReply:String,
 
 }, {
+
   timestamps: true
 });
 
 
 module.exports = mongoose.model('HelpArticle', helpArticlesSchema);
+

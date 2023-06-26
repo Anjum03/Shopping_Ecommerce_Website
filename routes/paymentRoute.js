@@ -51,7 +51,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 //existing user or new user 
 router.post('/stripe-customer', async (req, res) => {
   try {
-    const { email, productId, quantity ,} = req.body;
+    const { email, productId, quantity , } = req.body;
 
     const product = await Product.findById(productId);
 
@@ -126,7 +126,7 @@ router.post('/stripe-customer', async (req, res) => {
 
 
 
-//add-card
+//add-card all digit 
 router.post('/add-card', async (req, res) => {
   const { customer_Id, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
 
@@ -148,13 +148,53 @@ router.post('/add-card', async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Created add-card successfully',
-      data: { card: card.id },
+      data:{  source :  card_Token.id    , 
+         card: card.id
+         }
     });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
   }
 });
+
+
+// //add-card for last 4 digit
+// router.post('/add-cards', async (req, res) => {
+//   const { customer_Id, card_Name, card_ExpYear, card_ExpMonth, lastFourDigits, card_CVC } = req.body;
+
+//   try {
+//     const card_Token = await stripe.tokens.create({
+//       card: {
+//         name: card_Name,
+//         exp_month: card_ExpMonth,
+//         exp_year: card_ExpYear,
+
+//         last4: lastFourDigits, // Use the lastFourDigits provided from the frontend
+//         cvc: card_CVC,
+//       },
+//     });
+
+//     const card = await stripe.customers.createSource(customer_Id, {
+//       source: card_Token.id,
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created add-card successfully',
+//       data: {
+//         source: card_Token.id,
+//         card: { id: card.id, lastFourDigits: lastFourDigits },
+//       },
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
+
+
+
 
 // create-charge
 router.post('/create-charge', async (req, res) => {
@@ -180,43 +220,6 @@ router.post('/create-charge', async (req, res) => {
     res.status(500).json({ success: false,error: 'Backend Server error :' + error });
   }
 });
-
-
-
-
-
-// router.post('/paymentIntents', async (req, res) => {
-
-//   try {
-//     const { amount, currency,  } = req.body;
-    
-//     // Create a payment intent or charge using the Stripe API
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount,
-//       currency,
-//       payment_method_types: ['card'],
-//       // Other Stripe options
-//     });
-    
-
-//     // Save payment details to the database
-//     // const payment = new Payment({
-//     //   amount,
-//     //   currency,
-//     //   // Other payment details
-//     // });
-//     // await payment.save();
-
-//     res.status(200).json({ paymentIntent : paymentIntent});
-//     // res.status(200).json({ payment });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
-// const stripe = require('stripe')('sk_test_4eC39HqLyjWDarjtT1zdp7dc');
-// ('sk_test_4eC39HqLyjWDarjtT1zdp7dc'); // Api key of secret key 
-
     
 
 
@@ -257,45 +260,45 @@ router.post('/payments', async (req, res) => {
 
 
 
-router.post('/stripe-customer', async (req, res) => {
-  try {
-    const { email, productId, quantity } = req.body;
+// router.post('/stripe-customer', async (req, res) => {
+//   try {
+//     const { email, productId, quantity } = req.body;
 
-    const product = await Product.findById(productId);
+//     const product = await Product.findById(productId);
 
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
-    }
+//     if (!product) {
+//       return res.status(404).json({ success: false, message: 'Product not found' });
+//     }
 
-    const variation = product.variations[0];
+//     const variation = product.variations[0];
 
-    if (!variation) {
-      return res.status(404).json({ success: false, message: 'Variation not found' });
-    }
+//     if (!variation) {
+//       return res.status(404).json({ success: false, message: 'Variation not found' });
+//     }
 
-    const price = variation.materials[0].price;
+//     const price = variation.materials[0].price;
 
-    const customer = await stripe.customers.create({
-      email: email,
-      metadata: {
-        productId : productId,
-        productName: product.name,
-        productImages: product.thumbs[0],
-        productPrice: price,
-        quantity: quantity
-      }
-    });
+//     const customer = await stripe.customers.create({
+//       email: email,
+//       metadata: {
+//         productId : productId,
+//         productName: product.name,
+//         productImages: product.thumbs[0],
+//         productPrice: price,
+//         quantity: quantity
+//       }
+//     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Created stripe-customer successfully',
-      data: customer,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
-  }
-});
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created stripe-customer successfully',
+//       data: customer,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
 
 
 

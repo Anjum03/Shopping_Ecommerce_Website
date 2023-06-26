@@ -1,488 +1,394 @@
-require('dotenv').config();
-const express = require('express');
-const router = express.Router();
-const Category = require('../model/categoryModel');
-const { verifyAdminToken, isAdmin } = require('../middleware/token');
-const cloudinary = require('cloudinary').v2;
-const UserProduct = require("../model/userProductModel")
-const Product = require("../model/productModel");
 
-//config
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
+require('dotenv').config()
+const router = require('express').Router();
+const Product = require("../model/userProductModel");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-//   Get by all clothing product
-//view all category and product by publish data for User 
+// stripe-customer
 
-router.get('/product/category', async (req, res) => {
-    try {
+// router.post('/stripe-customer', async (req, res) => {
+//   try {
+//     const { email, productId, quantity } = req.body;
 
-const query = {
-    publish: { $in: [true] } // Include documents with publish: true and publish: false
-  };
-      const userProducts = await UserProduct.find(query);
-  
-      res.status(200).json({
-        success: true,
-        message: `Products for Category ID `,
-        data: userProducts
-      });
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ success: false, error: 'Server error' });
-    }
-  });
-  
-  
+//     const product = await Product.findById(productId);
 
+//     if (!product) {
+//       return res.status(404).json({ success: false, message: 'Product not found' });
+//     }
 
-//view all category and product by publish data
-router.get("/category/:categoryId/product", async (req, res) => {
-    try {
-        const categoryId = req.params.categoryId;
+//     const variation = product.variations[0];
 
-        // Check if the category exists in the database
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
+//     if (!variation) {
+//       return res.status(404).json({ success: false, message: 'Variation not found' });
+//     }
 
-       const query = {
-    publish: { $in: [true] } // Include documents with publish: true and publish: false
-  };
-      const products = await Product.find(query);
-  
-      res.status(200).json({
-        success: true,
-        message: `Products for Category ID `,
-        data: products
-      });
+//     const price = variation.materials[0].price;
 
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, error: 'Server error' });
-    }
-});
+//     const customer = await stripe.customers.create({
+//       email: email,
+//       metadata: {
+//         productId : productId,
+//         productName: product.name,
+//         productImages: product.thumbs[0],
+//         productPrice: price,
+//         quantity: quantity
+//       }
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created stripe-customer successfully',
+//       data: customer,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
 
 
 
-// GET /category - Get all categories
-router.get("/category/:categoryId/products", verifyAdminToken, isAdmin, async (req, res) => {
-    try {
-        const categoryId = req.params.categoryId;
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
+//existing user or new user 
+router.post('/stripe-customer', async (req, res) => {
+  try {
+    const { email, productId, quantity , } = req.body;
 
-        const products = await Product.find();
-        const userProducts = await UserProduct.find();
-        res.status(200).json({ success: true, message: `Products for Category ID ${categoryId}`, data: products , userProducts });
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Server error' });
-    }
-});
+    const product = await Product.findById(productId);
 
-
-
-
-//   Get by ID clothing product
-router.get('/category/:categoryId/product/:productId', async (req, res) => {
-    try {
-        const categoryId = req.params.categoryId;
-        const productId = req.params.productId;
-
-        // Check if the category and product exist in the database
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ success: false, error: `Category not found with id ${categoryId}` });
-        }
-
-        const product = await Product.findById({ _id: productId});
         if (!product) {
-            return res.status(404).json({ success: false, error: `Product not found with id ${productId}` });
+          return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
-        res.status(200).json({ success: true, data: product });
+    //     const variation = product.variations[0];
 
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Server error' });
-    }
-});
+    // if (!variation) {
+    //   return res.status(404).json({ success: false, message: 'Variation not found' });
+    // }
 
+    // const price = variation.materials[0].price;
 
+    let customer = await stripe.customers.list({ email: email, limit: 1 });
 
+    if (customer.data.length > 0) {
+      // Existing customer found, add product details to their array
+      customer = customer.data[0];
+      const existingMetadata = customer.metadata;
 
+      const updatedMetadata = {
+        ...existingMetadata,
+        productId: productId,
+        productName: product.name,
+        productImages: product.thumbs[0],
+        productPrice: product.totalPrice,
+        quantity: quantity
+      };
 
-// Add a new product to a category
-router.post("/category/:categoryId/product", verifyAdminToken, isAdmin, async (req, res) => {
-    // Get the category ID from the URL parameter
-    const categoryId = req.params.categoryId;
-    // Find the category in the database
-    const category = await Category.findById(categoryId);
-
-    if (!category) {
-        return res.status(404).send({ error: 'Category not found' });
-    }
-
-    const files = req.files;
-
-    let uploadPromises;
-
-    if (Array.isArray(files.photos)) {
-        uploadPromises = files.photos.map((file) => {
-            return new Promise((resolve, reject) => {
-                cloudinary.uploader.upload(
-                    file.tempFilePath,
-                    {
-                        resource_type: "image",
-                        format: file.mimetype.split('/')[1],
-                    },
-                    (err, result) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(result.url);
-                        }
-                    }
-                )
-            });
-        });
+      await stripe.customers.update(customer.id, { metadata: updatedMetadata });
     } else {
-        uploadPromises = [
-            new Promise((resolve, reject) => {
-                cloudinary.uploader.upload(
-                    files.photos.tempFilePath,
-                    {
-                        resource_type: "image",
-                        format: files.photos.mimetype.split('/')[1],
-                    },
-                    (err, result) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(result.url);
-                        }
-                    }
-                )
-            })
-        ];
-    }
-
-    try {
-        const imageUrls = await Promise.all(uploadPromises);
-        const discountPercentage = parseInt(req.body.discount.replace("%", ""));
-        const price = parseFloat(req.body.price);
-        const discountAmount = price * (discountPercentage / 100);
-        const discountedPrice = price - discountAmount;
-        const totalPrice = Math.round(discountedPrice);
-
-        const categoryUserProduct = category.name;
-
-        const discountAdmin = `${discountPercentage}%`;
-        const discountUser = `${discountPercentage}`;
-       
-        const newProduct = new Product({
-            name: req.body.name,
-            description: req.body.description,
-            imageUrl: imageUrls,
-            fabric: req.body.fabric,
-            event: req.body.event,
-            tags:categoryUserProduct ,
-            type: req.body.type,
-            categories: categoryUserProduct ,
-            size: req.body.size,
-            bodyShape: req.body.bodyShape,
-            color: req.body.color,
-            clothMeasurement: req.body.clothMeasurement,
-            returnPolicy: req.body.returnPolicy,
-            stockAvailability: req.body.stockAvailability,
-            age: req.body.age,
-            discount: discountAdmin, // Add the percentage symbol here
-            price: price,
-            totalPrice: totalPrice,
-            publish: req.body.publish
-        });
-        const savedProduct = await newProduct.save();
-        
-        let variations = [];
-        variations.push({
-            // id: savedProduct.id,
-            title: savedProduct.name,
-            color: {
-                name: savedProduct.color,
-                thumb: savedProduct.color,
-                code: savedProduct.color
-            },
-            materials: [{
-                name: savedProduct.fabric,
-                thumb: savedProduct.fabric,
-                slug: savedProduct.fabric,
-                price: savedProduct.totalPrice
-            }],
-            sizes: [{
-                name: savedProduct.size,
-                stockAvailability: savedProduct.stockAvailability,
-            }],
-        });
-
-        // create a new user product using the saved product's data
-        const newUserProduct = new UserProduct({
-            productId: savedProduct.id, // --------------------->  no issue
-            name: savedProduct.name,
-            discount: discountUser,
-            type: savedProduct.type,
-            event: savedProduct.event,
-            categories: categoryUserProduct,
-            tags: categoryUserProduct,
-            thumbs: savedProduct.imageUrl.slice(0,1),
-            age : savedProduct.age ,
-            previewImages: savedProduct.imageUrl,
-            excerpt: savedProduct.description,
-            bodyShape: savedProduct.bodyShape,
-            clothMeasurement: savedProduct.clothMeasurement,
-            returnPolicy: savedProduct.returnPolicy,
-            variations: variations,
-            publish: savedProduct.publish
-
-        });
-        //save the new user product to the user database
-        await newUserProduct.save();
-
-        // Add the product to the category's products array
-        category.products.push(savedProduct._id);
-        await category.save();
-        res.status(201).json({
-            success: true,
-            data: newProduct,
-            userUserProduct: newUserProduct,
-        }); // Add the percentage symbol here
-
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, error: "Server error" });
-    }
-});
-
-
-
-//update and  Update an existing clothing product y ID
-  
-router.put('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
-    try {
-      const { productId, categoryId } = req.params;
-  
-      // Find the category in the database
-      const category = await Category.findById(categoryId);
+      // Create a new customer and add product details
       const product = await Product.findById(productId);
-      const categoryUserProduct = category.name;
 
-        if (!category || !product) {
-            return res.status(404).send({ error: 'Product or Category not found' });
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+
+      const variation = product.variations[0];
+
+      if (!variation) {
+        return res.status(404).json({ success: false, message: 'Variation not found' });
+      }
+
+      const price = variation.materials[0].price;
+
+      customer = await stripe.customers.create({
+        email: email,
+        metadata: {
+          productId: productId,
+          productName: product.name,
+          productImages: product.thumbs[0],
+          productPrice:product.totalPrice,
+          quantity: quantity
         }
-        // Check if new image files are being uploaded
-        let newImageUrls = product.imageUrl;
-        if (req.files && req.files.photos) {
-            const files = req.files.photos;
-            let uploadPromises;
-            if (Array.isArray(files)) {
-                uploadPromises = files.map((file) => {
-                    return new Promise((resolve, reject) => {
-                        cloudinary.uploader.upload(
-                            file.tempFilePath,
-                            {
-                                resource_type: 'image',
-                                format: file.mimetype.split('/')[1],
-                            },
-                            (err, result) => {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(result.url);
-                                }
-                            }
-                        );
-                    });
-                });
-            } else {
-                uploadPromises = [
-                    new Promise((resolve, reject) => {
-                        cloudinary.uploader.upload(
-                            files.tempFilePath,
-                            {
-                                resource_type: 'image',
-                                format: files.mimetype.split('/')[1],
-                            },
-                            (err, result) => {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(result.url);
-                                }
-                            }
-                        );
-                    }),
-                ];
-            }
-            newImageUrls = await Promise.all(uploadPromises);
-        }
-
-        // Update the product fields
-        product.name = req.body.name || product.name;
-        product.publish = req.body.publish || product.publish;
-        product.description = req.body.description || product.description;
-        product.imageUrl = newImageUrls || product.imageUrl;
-        product.fabric = req.body.fabric || product.fabric;
-        product.event = req.body.event || product.event;
-        product.categories = categoryUserProduct|| product.categories;
-        product.tags = categoryUserProduct|| product.tags;
-        product.type = req.body.type|| product.type;
-        product.size = req.body.size || product.size;
-        product.bodyShape = req.body.bodyShape || product.bodyShape;
-        product.color = req.body.color || product.color;
-        product.clothMeasurement =
-            req.body.clothMeasurement || product.clothMeasurement;
-        product.returnPolicy = req.body.returnPolicy || product.returnPolicy;
-        product.stockAvailability =
-            req.body.stockAvailability || product.stockAvailability;
-        product.age = req.body.age || product.age;
-        product.discount = parseFloat(req.body.price) || product.discount;
-        product.price = parseFloat(req.body.price) || product.price;
-
-        // Recalculate the total price if the price or discount changes
-        const price = product.price;
-        const discountPercentage = parseInt(product.discount.replace("%", ""));
-        const discountAmount = price * (discountPercentage / 100);
-        const discountedPrice = price - discountAmount;
-        const totalPrice = Math.round(discountedPrice);
-
-        product.totalPrice = totalPrice;
-
-        const savedProduct = await product.save();
-        const discountUser = `${discountPercentage}`;
-        // update the user product object
-        const variations = [];
-      
-            variations.push({
-                title: savedProduct.name,
-                color: {
-                    name: savedProduct.color,
-                    thumb: savedProduct.color,
-                    code: savedProduct.color
-                },
-                materials: [{
-                    name: savedProduct.fabric,
-                    thumb: savedProduct.fabric,
-                    slug: savedProduct.fabric,
-                    price: savedProduct.totalPrice
-                }],
-                sizes: [{
-                    name: savedProduct.size,
-                    stockAvailability: savedProduct.stockAvailability,
-                }],
-            });
-
-        const userProduct = await UserProduct.findOne({ productId: savedProduct._id });
-        if (userProduct) {
-            userProduct.productId=  savedProduct._id,
-            userProduct.name = savedProduct.name;
-            userProduct.discount =  discountUser;
-            userProduct.category = categoryUserProduct;
-            userProduct.type = savedProduct.type;
-            userProduct.event = savedProduct.event;
-            userProduct.age = savedProduct.age;
-            userProduct.publish = savedProduct.publish;
-            userProduct.tags = categoryUserProduct;
-            userProduct.thumbs = savedProduct.imageUrl;
-            userProduct.previewImages = savedProduct.imageUrl;
-            userProduct.excerpt = savedProduct.description;
-            userProduct.bodyShape = savedProduct.bodyShape;
-            userProduct.returnPolicy = savedProduct.returnPolicy;
-            userProduct.clothMeasurement = savedProduct.clothMeasurement;
-            userProduct.variations = variations;
-
-            await userProduct.save();
-        }
-        savedProduct.discount = `${savedProduct.discount}`;
-
-        // Update the product in the category's products array
-        const productIndex = category.products.findIndex((p) => p._id.toString() === productId);
-        category.products[productIndex] = savedProduct._id;
-
-        await category.save();
-        // Include the percentage symbol in the discount field of the response
-
-        res.status(200).json({ success: true, data: savedProduct,newUserProduct : userProduct });
-
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, error: 'Server error' });
+      });
     }
+
+    res.status(200).json({
+      success: true,
+      message: 'Created stripe-customer successfully',
+      data: customer,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+  }
 });
 
 
 
 
-//delete and Delete a clothing product with imgs
-router.delete('/category/:categoryId/product/:productId', verifyAdminToken, isAdmin, async (req, res) => {
-    try {
-        const { productId, categoryId } = req.params;
+//add-card all digit 
+router.post('/add-card', async (req, res) => {
+  const { customer_Id, card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC } = req.body;
 
-        // Find the category in the database
-        const category = await Category.findById(categoryId);
+  try {
+    const card_Token = await stripe.tokens.create({
+      card: {
+        name: card_Name,
+        number: card_Number,
+        exp_month: card_ExpMonth,
+        exp_year: card_ExpYear,
+        cvc: card_CVC,
+      },
+    });
 
-        if (!category) {
-            return res.status(404).send({ error: 'Category not found' });
-        }
+    const card = await stripe.customers.createSource(customer_Id, {
+      source: card_Token.id,
+    });
 
-        // Find the product in the category's products array
-        const productIndex = category.products.findIndex((product) => product._id.toString() === productId);
-
-        if (productIndex === -1) {
-            return res.status(404).send({ error: 'Product not found' });
-        }
-
-        // Get the product to be deleted
-        const deletedProduct = category.products[productIndex];
-
-        // Remove the product from the category's products array
-        category.products.splice(productIndex, 1);
-
-        // Delete the product from the product database
-        const adminProduct = await Product.findByIdAndDelete(productId);
-
-        // Delete the product from the user products
-
-        const websiteProduct = await UserProduct.findOne({ productId });
-        if (websiteProduct) {
-            await UserProduct.deleteOne({ productId: productId });
-        }
-
-        // Delete the images from Cloudinary
-        if (deletedProduct.imageUrl && deletedProduct.imageUrl.length > 0) {
-            for (let i = 0; i < deletedProduct.imageUrl.length; i++) {
-                const publicId = deletedProduct.imageUrl[i].split('/').slice(-1)[0].split('.')[0];
-                await cloudinary.uploader.destroy(publicId);
-            }
-        }
-
-        // Save the updated category to the database
-        await category.save();
-
-        res.status(200).json({
-            success: true,
-            msg: 'Product removed from category and user products successfully',
-            data: adminProduct, websiteProduct
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Created add-card successfully',
+      data:{  source :  card_Token.id    , 
+         card: card.id
+         }
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+  }
 });
+
+
+// //add-card for last 4 digit
+// router.post('/add-cards', async (req, res) => {
+//   const { customer_Id, card_Name, card_ExpYear, card_ExpMonth, lastFourDigits, card_CVC } = req.body;
+
+//   try {
+//     const card_Token = await stripe.tokens.create({
+//       card: {
+//         name: card_Name,
+//         exp_month: card_ExpMonth,
+//         exp_year: card_ExpYear,
+
+//         last4: lastFourDigits, // Use the lastFourDigits provided from the frontend
+//         cvc: card_CVC,
+//       },
+//     });
+
+//     const card = await stripe.customers.createSource(customer_Id, {
+//       source: card_Token.id,
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created add-card successfully',
+//       data: {
+//         source: card_Token.id,
+//         card: { id: card.id, lastFourDigits: lastFourDigits },
+//       },
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
+
+
+
+
+// create-charge
+router.post('/create-charge', async (req, res) => {
+  try {
+    const customer = await stripe.customers.retrieve(req.body.customer_Id);
+    const cardId = customer.default_source;
+
+    const createCharge = await stripe.charges.create({
+      customer: req.body.customer_Id,
+      receipt_email: req.body.email,
+      amount: 9000,
+      currency: 'CAD', // Update currency to CAD for Canadian dollars
+      source: cardId,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Created create-charge successfully',
+      data: createCharge,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false,error: 'Backend Server error :' + error });
+  }
+});
+    
+
+
+router.post('/payments', async (req, res) => {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Sample Product",
+            },
+            unit_amount: 1000,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${req.headers.origin}/shop`, //redirection page after payment success
+      cancel_url: `${req.headers.origin}/`,
+    });
+
+    res.status(200).json({ sessionId: session.id });
+  } catch (err) {
+    res.status(500).json({ error: "Error creating checkout session" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+// router.post('/stripe-customer', async (req, res) => {
+//   try {
+//     const { email, productId, quantity } = req.body;
+
+//     const product = await Product.findById(productId);
+
+//     if (!product) {
+//       return res.status(404).json({ success: false, message: 'Product not found' });
+//     }
+
+//     const variation = product.variations[0];
+
+//     if (!variation) {
+//       return res.status(404).json({ success: false, message: 'Variation not found' });
+//     }
+
+//     const price = variation.materials[0].price;
+
+//     const customer = await stripe.customers.create({
+//       email: email,
+//       metadata: {
+//         productId : productId,
+//         productName: product.name,
+//         productImages: product.thumbs[0],
+//         productPrice: price,
+//         quantity: quantity
+//       }
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created stripe-customer successfully',
+//       data: customer,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
+
+
+
+
+
+
+/////////////////////////////////////////one in all\ //////////////dev part 
+// router.post('/Stripe', async (req, res) => {
+ 
+//   const { card_Name, card_ExpYear, card_ExpMonth, card_Number, card_CVC , email } = req.body;
+
+//   try {
+//     // Create a new customer in Stripe
+//     const customer = await stripe.customers.create({
+//       email: email
+//     });
+
+//     // Create a card token using the provided card details
+//     const card_Token = await stripe.tokens.create({
+//       card: {
+//         name: card_Name,
+//         number: card_Number,
+//         exp_month: card_ExpMonth,
+//         exp_year: card_ExpYear,
+//         cvc: card_CVC,
+//       },
+//     });
+
+//     // Add the card to the customer
+//     const addedCard = await stripe.customers.createSource(customer.id, {
+//       source: card_Token.id,
+//     });
+
+//     // Retrieve the customer details after adding the card
+//     const retrievedCustomer = await stripe.customers.retrieve(customer.id);
+
+//     // Create a charge using the newly added card
+//     const createCharge = await stripe.charges.create({
+//       customer: retrievedCustomer.id,
+//       receipt_email: retrievedCustomer.email,
+//       amount: 9000,
+//       currency: 'CAD',
+//       // currency: 'INR',
+//       source: addedCard.id,
+//     });
+
+
+//     const payment = {
+//       productName: productName,
+//       // productImg: productImg,
+//       productPrice: productPrice,
+//       quantity: quantity,
+//       status: createCharge.status,
+//       // Add any other relevant payment details you want to save
+//     };
+
+
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created add-card and charge successfully',
+//       data: {
+//         card: addedCard.id,
+//         customer: retrievedCustomer,
+//         createCharge: createCharge,
+//       },
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 module.exports = router;
+ 

@@ -33,9 +33,6 @@ app.use('/', adminRoute);
 const categoryRoute = require("./routes/categoryRoute");
 app.use('/', categoryRoute);
 
-// const productRoute = require("./routes/productRoute");
-// app.use('/', productRoute);
-
 const purchaseRoute = require("./routes/purchaseRoute");
 app.use('/', purchaseRoute);
 
@@ -62,6 +59,9 @@ app.use('/', mariamRajRoute);
 
 const aboutUsEmailRoute = require("./routes/aboutUsEmail");
 app.use('/', aboutUsEmailRoute);
+
+const orderItemRoute = require("./routes/orderItemRoute");
+app.use('/', orderItemRoute);
 
 
 app.listen(PORT, () => {
