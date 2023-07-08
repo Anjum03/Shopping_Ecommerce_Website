@@ -32,7 +32,7 @@ const userProductSchema = new mongoose.Schema({
         name: String, //fabric name 
         slug: String, //fabric name in lowercase
         thumb: String, //product img
-        price: Number, // product price        
+        price: { type: Number }, // product price        
       }],
       sizes: [
         {

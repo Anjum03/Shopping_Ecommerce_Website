@@ -192,21 +192,35 @@ router.delete('/banner/:id', verifyAdminToken, isAdmin, async (req, res) => {
 
 
 //view all banner by publish data
-router.get('/banner',  async(req,res)=>{
-    try{
-let publish ;
-        let banners ;
-        if( publish = true ){
-
-             banners = await Banner.find({ publish: 'true' });
-        }
-
-        res.status(200).json({ success: true, data: banners});
-    }catch (error) {
-        res.status(500).json({ success: false, error: 'Server error' });
+router.get('/banner', async (req, res) => {
+    try {
+      const banners = await Banner.find({ publish: true });
+  
+      if (banners.length > 1) {
+        res.status(200).json({ success: true, message: 'Only one banner can be published' });
+      } else {
+        res.status(200).json({ success: true, data: banners });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Server error' });
     }
+  });
+  
+// router.get('/banner',  async(req,res)=>{
+//     try{
+// let publish ;
+//         let banners ;
+//         if( publish = true ){
 
-});
+//              banners = await Banner.find({ publish: 'true' });
+//         }
+
+//         res.status(200).json({ success: true, data: banners});
+//     }catch (error) {
+//         res.status(500).json({ success: false, error: 'Server error' });
+//     }
+
+// });
 
 
 

@@ -11,12 +11,12 @@ const Product = require('../model/userProductModel');
 
 // Receive Email for Query
 router.post('/aboutUsEmail', async (req, res) => {
-  const {name ,  Email, message, subject } = req.body;
+  const {name , email, message, subject } = req.body;
 
   try {
     const aboutUsEmail = new AboutUsEmail({
       name : name ,
-      Email : Email,
+      email : email,
       subject : subject,
       message : message,
     });
@@ -40,8 +40,8 @@ router.post('/aboutUsEmail', async (req, res) => {
     let mailGenerator = new mailgen({
       theme: 'default',
       product: {
-        name: 'My App',
-        link: 'https://myapp.com/',
+        name: 'MariamRaj Clothing Website',
+        link: `https://mariamraj.com/`,
       },
     });
 
@@ -52,7 +52,7 @@ router.post('/aboutUsEmail', async (req, res) => {
           data: [
             {
               name : name ,
-              user_email: Email,
+              user_email: email,
               message: message,
               subject : subject ,
             },
@@ -94,90 +94,89 @@ router.post('/publish', async (req, res) => {
   // const { Email, message, subject } = req.body;
 
   try {
-    
+    const product = await Product.findOne({ publish: true });
+    const category = await Category.findOne({ publish: true });
 
-     const product  = await Product.findOne({publish : true});
-     const category = await Category.findOne({ publish : true});
-
-     if(product || category){
+    if (product || category) {
       const users = await User.find();
 
-      //send mail Part 
+      // Send mail
 
-    let config = {
-      service: 'gmail',
-      auth: {
-        user: process.env.USEREMAIL,
-        pass: process.env.PASSWORD,
-      },
-    };
-
-    let transporter = nodemailer.createTransport(config);
-
-    let mailGenerator = new mailgen({
-      theme: 'default',
-      product: {
-        name: 'MariamRaj Clothing Website ',
-        link: `https://mariamraj.com/`,
-      },
-    });
-
-    const emailBody = {
-      body: {
-        intro: 'Email Successfully',
-        table: {
-          data: [
-            {
-              websiteLink : `https://mariamraj.com/`
-              
-            },
-          ],
+      let config = {
+        service: 'gmail',
+        auth: {
+          user: process.env.USEREMAIL,
+          pass: process.env.PASSWORD,
         },
-        outro: 'Looking forward to doing more business',
-      },
-    };
+      };
 
-    const emailTemplate = mailGenerator.generate(emailBody);
-    const emailText = mailGenerator.generatePlaintext(emailBody);
+      let transporter = nodemailer.createTransport(config);
 
-    users.forEach((user)=>{
-      transporter.sendMail(
-        {
-          to : user.email,       // form email (client email)
-          from : process.env.USEREMAIL, //qamar sir(company email)
-          subject: 'Email from User ',
-          text: emailText,
-          html: emailTemplate,
+      let mailGenerator = new mailgen({
+        theme: 'default',
+        product: {
+          name: 'MariamRaj Clothing Website',
+          link: `https://mariamraj.com/`,
         },
-        (error, info) => {
-          if (error) {
-            console.log('Error:', error);
-            res.status(500).send('Email could not be sent');
-          } else {
-            console.log('Email sent:', info.response);
+      });
+
+      const emailBody = {
+        body: {
+          intro: 'Email Successfully',
+          table: {
+            data: [
+              {
+                websiteLink: `https://mariamraj.com/`,
+              },
+            ],
+          },
+          outro: 'Looking forward to doing more business',
+        },
+      };
+
+      const emailTemplate = mailGenerator.generate(emailBody);
+      const emailText = mailGenerator.generatePlaintext(emailBody);
+
+      users.forEach((user) => {
+        transporter.sendMail(
+          {
+            to: user.email, // user's email address
+            from: process.env.USEREMAIL, // qamar sir's (company) email
+            subject: 'Email from User',
+            text: emailText,
+            html: emailTemplate,
+          },
+          (error, info) => {
+            if (error) {
+              console.log('Error:', error);
+              res.status(500).send('Email could not be sent');
+            } else {
+              console.log('Email sent:', info.response);
+            }
           }
-        }
-      );
-    })
+        );
+      });
 
-    res.status(200).json({
-      success: true,
-      data: result, // Pass the query object directly to the response
-      message: 'Sent!!!',
-    });
+      // Extract email addresses from users
+      const userEmails = users.map((user) => user.email);
 
-     } else {
+      res.status(200).json({
+        success: true,
+        data: userEmails,
+        message: 'Sent!!!',
+      });
+    } else {
       res.status(200).json({
         success: true,
         message: 'Category or product is not published',
       });
-     }
-  
+    }
   } catch (error) {
     console.log('Error:', error);
     res.status(500).json({ success: false, data: error });
   }
 });
+
 
 
 module.exports = router;
