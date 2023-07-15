@@ -5,7 +5,6 @@ const orderItemSchema = new mongoose.Schema({
   items: [
     {
       purchaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Purchase' },
-      // purchaseId: { type: String },
       productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
       productName: String,
       quantity: { type: Number },
@@ -25,16 +24,14 @@ const orderItemSchema = new mongoose.Schema({
     default: "pending",
   },
   deliveredAt: {
-    type: Date,
+    type: String,
   },
 });
 
-
 orderItemSchema.pre('save', function (next) {
   // Calculate the allProductTotalPrice based on the totalPrice of each item
-
   const totalPriceArray = this.items.map(item => item.totalPrice);
-  const allProductTotalPrice = totalPriceArray.reduce((accumulator, currentValue) => accumulator + currentValue,);
+  const allProductTotalPrice = totalPriceArray.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
   this.allProductTotalPrice = allProductTotalPrice;
   next();
 });

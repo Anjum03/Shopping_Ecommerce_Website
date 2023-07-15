@@ -1,8 +1,4 @@
 
-
-
-
-
 require('dotenv').config();
 const express = require('express');
 const router = express.Router();
@@ -71,8 +67,8 @@ router.post('/email', async (req, res) => {
     let mailGenerator = new mailgen({
       theme: 'default',
       product: {
-        name: 'My App',
-        link: 'https://myapp.com/',
+        name: 'MairamRaj',
+        link: 'https://mariamraj.com/',
       },
     });
 
@@ -167,15 +163,15 @@ router.post('/email/:id/reply', async (req, res) => {
  let mailGenerator = new mailgen({
   theme: "default",
   product: {
-    name: 'My App',
-    link: 'https://myapp.com/'
+    name: 'MariamRaj',
+    link: 'https://mariamraj.com/'
   }
 
 });
 
 const emailBody = {
   body: {
-    intro: "Email Successfully",
+    intro: "I have recevied your Eamil",
     table: {
       data: [
         {

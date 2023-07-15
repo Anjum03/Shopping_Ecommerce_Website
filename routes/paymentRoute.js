@@ -5,7 +5,6 @@ const Product = require("../model/userProductModel");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // stripe-customer
-
 // router.post('/stripe-customer', async (req, res) => {
 //   try {
 //     const { email, productId, quantity } = req.body;
@@ -48,155 +47,133 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 
-
-
-
-
 //WORKING FOR SINGLE PRODUCT
 // //existing user or new user 
-router.post('/stripe-customer', async (req, res) => {
-  try {
-    const { email, productId, quantity , } = req.body;
+// router.post('/stripe-customer', async (req, res) => {
+//   try {
+//     const { email, productId, quantity , } = req.body;
 
-    const product = await Product.findById(productId);
+//     const product = await Product.findById(productId);
 
-        if (!product) {
-          return res.status(404).json({ success: false, message: 'Product not found' });
-        }
+//         if (!product) {
+//           return res.status(404).json({ success: false, message: 'Product not found' });
+//         }
 
-    //     const variation = product.variations[0];
+//     //     const variation = product.variations[0];
 
-    // if (!variation) {
-    //   return res.status(404).json({ success: false, message: 'Variation not found' });
-    // }
+//     // if (!variation) {
+//     //   return res.status(404).json({ success: false, message: 'Variation not found' });
+//     // }
 
-    // const price = variation.materials[0].price;
+//     // const price = variation.materials[0].price;
 
-    let customer = await stripe.customers.list({ email: email, limit: 1 });
+//     let customer = await stripe.customers.list({ email: email, limit: 1 });
 
-    if (customer.data.length > 0) {
-      // Existing customer found, add product details to their array
-      customer = customer.data[0];
-      const existingMetadata = customer.metadata;
+//     if (customer.data.length > 0) {
+//       // Existing customer found, add product details to their array
+//       customer = customer.data[0];
+//       const existingMetadata = customer.metadata;
 
-      const updatedMetadata = {
-        ...existingMetadata,
-        email:email,
-        productId: productId,
-        productName: product.name,
-        productImages: product.thumbs[0],
-        productPrice: product.totalPrice,
-        quantity: quantity
-      };
+//       const updatedMetadata = {
+//         ...existingMetadata,
+//         email:email,
+//         productId: productId,
+//         productName: product.name,
+//         productImages: product.thumbs[0],
+//         productPrice: product.totalPrice,
+//         quantity: quantity
+//       };
 
-      await stripe.customers.update(customer.id, { metadata: updatedMetadata });
-    } else {
-      // Create a new customer and add product details
-      const product = await Product.findById(productId);
+//       await stripe.customers.update(customer.id, { metadata: updatedMetadata });
+//     } else {
+//       // Create a new customer and add product details
+//       const product = await Product.findById(productId);
 
-      if (!product) {
-        return res.status(404).json({ success: false, message: 'Product not found' });
-      }
+//       if (!product) {
+//         return res.status(404).json({ success: false, message: 'Product not found' });
+//       }
 
-      customer = await stripe.customers.create({
-        email: email,
-        metadata: {
-          email:email,
-          productId: productId,
-          productName: product.name,
-          productImages: product.thumbs[0],
-          productPrice:product.totalPrice,
-          quantity: quantity
-        }
-      });
-    }
+//       customer = await stripe.customers.create({
+//         email: email,
+//         metadata: {
+//           email:email,
+//           productId: productId,
+//           productName: product.name,
+//           productImages: product.thumbs[0],
+//           productPrice:product.totalPrice,
+//           quantity: quantity
+//         }
+//       });
+//     }
 
-    res.status(200).json({
-      success: true,
-      message: 'Created stripe-customer successfully',
-      data: customer,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
-  }
-});
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created stripe-customer successfully',
+//       data: customer,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
 
 
 //working with multiple prdoucts and quantity
-router.post('/stripe', async (req, res) => {
+router.post('/stripe-customer', async (req, res) => {
   try {
     const { email, productId, quantity } = req.body;
+    const productIds = Array.isArray(productId) ? productId : [productId];
+    const productQuantities = Array.isArray(quantity) ? quantity : [quantity];
 
-    let products = [];
-    if (Array.isArray(productId)) {
-      // Multiple product IDs provided
-      products = await Product.find({ _id: { $in: productId } });
-    } else {
-      // Single product ID provided
-      const product = await Product.findById(productId);
-      if (product) {
-        products.push(product);
-      }
-    }
+    const products = await Product.find({ _id: { $in: productIds } });
 
     if (products.length === 0) {
       return res.status(404).json({ success: false, message: 'Products not found' });
     }
 
-    // Extract necessary product details
-    const productIds = products.map((product) => product._id.toString());
-    const productQuantities = Array.isArray(quantity) ? quantity : [quantity];
-    const productPrices = products.map((product) => product.totalPrice);
+    const totalPrices = [];
+    const metadata = {
+      productId: productIds.join(','),
+      quantity: productQuantities.join(','),
+      realPrice : '',
+      productPrice: '',
+      productName :'',
+    };
+    // const variation = products[0].variations[0]; // Access the variation from the first product
 
-    const totalPrices = productIds.map((productId, index) => {
-      const price = productPrices[index];
-      const quantity = productQuantities[index];
-      return price * quantity;
-    });
+    // if (!variation) {
+    //   return res.status(404).json({ success: false, message: 'Variation not found' });
+    // }
+    
+    // const priceRate = variation.materials[0].price;
+    for (let i = 0; i < productIds.length; i++) {
+      const product = products.find((p) => p._id.toString() === productIds[i]);
+      const price = product ? product.totalPrice * productQuantities[i] : NaN;
+      totalPrices.push(price);
+      metadata.productPrice += price.toString() + ','
+      metadata.productName += product ? product.name + ',' : '';
+      metadata.realPrice += product ? product.totalPrice + ',' : '';
+    }
+
+    // Remove the trailing comma from productPrice
+    metadata.productPrice = metadata.productPrice.slice(0, -1);
+    metadata.productName = metadata.productName.slice(0, -1);
+    metadata.realPrice = metadata.realPrice.slice(0, -1);
 
     let customer = await stripe.customers.list({ email: email, limit: 1 });
 
-    // if (customer.data.length > 0) {
-    //   // Existing customer found, add product details to their array
-    //   customer = customer.data[0];
-    //   const existingMetadata = customer.metadata;
+    // Create a new customer and add product details
+    const newCustomer = await stripe.customers.create({
+      email: email,
+      metadata: metadata,
+    });
 
-    //   const updatedMetadata = {
-    //     ...existingMetadata,
-    //     productId: productIds.toString(),
-    //     productPrice: productPrices.toString(),
-    //     quantity: productQuantities.toString(),
-    //   };
-
-    //   await stripe.customers.update(customer.id, { metadata: updatedMetadata });
-    //   customer.metadata = updatedMetadata; // Include the updated metadata in the response
-    // } else {
-      // Create a new customer and add product details
-      const product = await Product.findById(productId);
-
-      if (!product) {
-        return res.status(404).json({ success: false, message: 'Product not found' });
-      }
-
-      const metadata = {
-        productId: productIds.toString(),
-        quantity: productQuantities.toString(),
-        productPrice: totalPrices.toString(),
-      };
-
-      customer = await stripe.customers.create({
-        email: email,
-        metadata: metadata,
-      });
-
-      customer.metadata = metadata; // Include the metadata in the response
-    // }
+    newCustomer.metadata = metadata; // Include the metadata in the response
 
     res.status(200).json({
       success: true,
       message: 'Created stripe-customer successfully',
-      data: customer,
+      data: newCustomer,
     });
   } catch (error) {
     console.log(error);
@@ -205,7 +182,74 @@ router.post('/stripe', async (req, res) => {
 });
 
 
+// ----------------- as per last meeting----------------
+// router.post('/stripe-customer', async (req, res) => {
+//   try {
+//     const { email, productId, quantity , } = req.body;
 
+//     const product = await Product.findById(productId);
+
+//         if (!product) {
+//           return res.status(404).json({ success: false, message: 'Product not found' });
+//         }
+
+//     //     const variation = product.variations[0];
+
+//     // if (!variation) {
+//     //   return res.status(404).json({ success: false, message: 'Variation not found' });
+//     // }
+
+//     // const price = variation.materials[0].price;
+
+//     let customer = await stripe.customers.list({ email: email, limit: 1 });
+
+//     if (customer.data.length > 0) {
+//       // Existing customer found, add product details to their array
+//       customer = customer.data[0];
+//       const existingMetadata = customer.metadata;
+
+//       const updatedMetadata = {
+//         ...existingMetadata,
+//         email:email,
+//         productId: productId,
+//         productName: product.name,
+//         productImages: product.thumbs[0],
+//         productPrice: product.totalPrice,
+//         quantity: quantity
+//       };
+
+//       await stripe.customers.update(customer.id, { metadata: updatedMetadata });
+//     } else {
+//       // Create a new customer and add product details
+//       const product = await Product.findById(productId);
+
+//       if (!product) {
+//         return res.status(404).json({ success: false, message: 'Product not found' });
+//       }
+
+//       customer = await stripe.customers.create({
+//         email: email,
+//         metadata: {
+//           email:email,
+//           productId: productId,
+//           productName: product.name,
+//           productImages: product.thumbs[0],
+//           productPrice:product.totalPrice,
+//           quantity: quantity
+//         }
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Created stripe-customer successfully',
+//       data: customer,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: 'Backend Server error: ' + error });
+//   }
+// });
 
 
 

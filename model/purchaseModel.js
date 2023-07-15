@@ -8,7 +8,7 @@ const purchaseSchema = new mongoose.Schema({
   price: { type: Number },
   paymentMode: {
     type: String,
-    enum: ['cash on Delivery', 'cheque', 'card'],
+    enum: ['cash on Demand', 'cheque', 'card'],
     default: 'card',
   },
   status: {
