@@ -97,7 +97,7 @@ router.post("/category",verifyAdminToken, isAdmin, async (req, res) => {
       file.tempFilePath,
       {
         resource_type: "image",
-        format: "jpeg",
+        format: file.mimetype.split('/')[1]
       },
       async (err, result) => {
         if (err) {

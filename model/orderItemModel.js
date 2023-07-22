@@ -8,8 +8,11 @@ const orderItemSchema = new mongoose.Schema({
       productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
       productName: String,
       quantity: { type: Number },
-      price: { type: Number },
+      price: { type: Number },usdPrice : Number , poundPrice : Number ,
       totalPrice: Number,
+      usdTotalPrice: Number,
+      poundTotalPrice: Number,
+      currency: String
     }
   ],
   allProductTotalPrice: { type: Number, default: 0 },
@@ -30,7 +33,10 @@ const orderItemSchema = new mongoose.Schema({
 
 orderItemSchema.pre('save', function (next) {
   // Calculate the allProductTotalPrice based on the totalPrice of each item
-  const totalPriceArray = this.items.map(item => item.totalPrice);
+  const totalPriceArray = this.items.map(item => {
+    const price = item.currency === 'cad' ? item.cadTotalPrice : item.cadTotalPrice * item.quantity;
+    return price;
+  });
   const allProductTotalPrice = totalPriceArray.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
   this.allProductTotalPrice = allProductTotalPrice;
   next();

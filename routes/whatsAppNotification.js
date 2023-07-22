@@ -81,69 +81,73 @@ const Product = require('../model/userProductModel');
 
 const axios = require('axios');
 
-router.post('/send-whatsapp', function(req, res, next) {
-  // Extract recipient and message from the request body
-  const recipient = `+91${req.body.recipient}`; // Add "+91" as the country code for India
-  const message = req.body.message;
+router.post('/send-whatsapp', async function(req, res, next) {
+  try {
+    // Extract recipient and message from the request body
+    const recipient = `+91${req.body.recipient}`; // Add "+91" as the country code for India
+    const message = req.body.message;
 
-  // Define the function to get the input for the message
-  function getTextMessageInput(recipient, text) {
-    return JSON.stringify({
-      "messaging_product": "whatsapp",
-      "preview_url": false,
-      "recipient_type": "individual",
-      "to": recipient,
-      "type": "text",
-      "text": {
-        "body": text
-      }
-    });
-  }
-
-  // Define the function to send the message
-  function sendMessage(data) {
-    const config = {
-      method: 'post',
-      url: `https://graph.facebook.com/v17.0/109946778832941/messages`,
-      headers: {
-        'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      data: data
-    };
-
-    return axios(config);
-  }
-
-  // Create the message payload
-  const data = getTextMessageInput(recipient, message);
-
-  // Send the message
-  sendMessage(data)
-    .then(function(response) {
-      res.sendStatus(200);
-      return;
-    })
-    .catch(function(error) {
-      console.log(error);
-      console.log(error.response.data);
-      if (error.response && error.response.data && error.response.data.error) {
-        const errorMessage = error.response.data.error.message;
-        // Handle specific error messages or error codes
-        if (errorMessage === '(#100) Invalid parameter') {
-          // Handle invalid parameter error
-          res.status(400).send('Invalid parameter');
-        } else {
-          // Handle other errors
-          res.status(500).send('Internal Server Error');
+    // Define the function to get the input for the message
+    function getTextMessageInput(recipient, text) {
+      return JSON.stringify({
+        "messaging_product": "whatsapp",
+        "preview_url": false,
+        "recipient_type": "individual",
+        "to": recipient,
+        "type": "text",
+        "text": {
+          "body": text
         }
+      });
+    }
+
+    // Define the function to send the message
+    async function sendMessage(data) {
+      const config = {
+        method: 'post',
+        url: `https://graph.facebook.com/v17.0/109946778832941/messages`,
+        headers: {
+          'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        data: data
+      };
+
+      const response = await axios(config);
+      return response.data; // Only return the response data instead of the entire response object
+    }
+
+    // Create the message payload
+    const data = getTextMessageInput(recipient, message);
+
+    // Send the message
+    const response = await sendMessage(data);
+
+    // Send a response indicating success
+    console.log('Message sent to all registered users');
+    res.status(200).json({ success: true, message: 'Message sent to all registered users', data: response });
+  } catch (error) {
+    console.error(`Error sending message: ${error}`);
+    if (error.response && error.response.data && error.response.data.error) {
+      const errorMessage = error.response.data.error.message;
+
+      // Handle specific error messages or error codes
+      if (errorMessage === '(#100) Invalid parameter') {
+        // Handle invalid parameter error
+        res.status(400).send('Invalid parameter');
       } else {
         // Handle other errors
         res.status(500).send('Internal Server Error');
       }
-      return;
-    });
+    } else {
+      // Handle other errors
+      res.status(500).send('Internal Server Error');
+    }
+  }
 });
+
+
+
 
 // 
 // module.exports = router;

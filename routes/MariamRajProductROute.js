@@ -13,6 +13,8 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+
 router.get('/userProduct/category', async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -87,6 +89,18 @@ router.get('/category/:categoryId/userProducts/:productId', async (req, res) => 
 });
 
 
+
+// Helper function to format bytes into a human-readable format
+// function formatBytes(bytes) {
+//   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+//   if (bytes === 0) return '0 Byte';
+//   const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+//   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+// }
+
+const compressImage = require('compress-images')
+const axios = require('axios');
+const fs = require('fs');
 router.post("/category/:categoryId/userProduct", verifyAdminToken, isAdmin, async (req, res) => {
   // Get the category ID from the URL parameter
   const categoryId = req.params.categoryId;
@@ -144,48 +158,101 @@ router.post("/category/:categoryId/userProduct", verifyAdminToken, isAdmin, asyn
 
   try {
     const imageUrls = await Promise.all(uploadPromises);
+
+    // Compress and save images
+    const compressedUrls = await Promise.all(imageUrls.map(async (imageUrl) => {
+      const fileName = imageUrl.split('/').pop();
+      const filePath = `tmp/${fileName}`;
+      const compressedPath = `tmp/compressed_${fileName}`;
+      const compression = 60;
+
+      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const imageData = Buffer.from(response.data, 'binary');
+      fs.writeFileSync(filePath, imageData);
+
+      return new Promise((resolve, reject) => {
+        compressImage(filePath, compressedPath, { compress_force: false, statistic: true, autoupdate: true }, false,
+          
+          { jpg: { engine: "mozjpeg", command: ["-quality", compression] } },
+          { png: { engine: "pngquant", command: ["--quality=" + compression + "-" + compression, "-o"] } },
+          { svg: { engine: "svgo", command: "--multipass" } },
+          { gif: { engine: "gifsicle", command: ["--colors", "64", "--use-col=web"] } },
+
+          async function (error, completed, statistic) {
+            if (error) {
+              reject(error);
+            } else {
+              // console.log("-----------------------------------");
+              // console.log(`File from: ${filePath}`);
+              // console.log(`File to: ${compressedPath}`);
+              // console.log(`Compression algorithm: [${statistic.algorithm}]`);
+              // console.log(`Original size: [${(statistic.size_in / (1024 * 1024)).toFixed(2)}MB] | Compressed size: [${(statistic.size_output / (1024 * 1024)).toFixed(2)}MB] | Compression rate: [${((statistic.size_output / statistic.size_in) * 100).toFixed(2)}%]`);
+              // console.log("-----------------------------------");
+    //  if you want response same as termianl response 
+
+              resolve(compressedPath);
+            
+            }
+            fs.unlink(filePath, function (error) {
+              if (error) console.error("Failed to unlink original image:", error);
+            });
+          }
+        );
+      });
+    }));
+
+
     const discountPercentage = parseInt(req.body.discount.replace("%", ""));
     const price = parseFloat(req.body.price);
     const discountAmount = price * (discountPercentage / 100);
     const discountedPrice = price - discountAmount;
     const totalPrice = Math.round(discountedPrice);
-  
+
+    const usdExchangeRate = 0.74;
+    const poundExchangeRate = 0.59;
+    const usdTotalPrice = Math.round(totalPrice * usdExchangeRate);
+    const poundTotalPrice = Math.round(totalPrice* poundExchangeRate);
+    const usdPrice = Math.round(price * usdExchangeRate);
+    const poundPrice = Math.round(price * poundExchangeRate);
+
     const {
       name, event, discount, type,
       excerpt, bodyShape, age, clothMeasurement,
       returnPolicy, publish,
     } = req.body;
-  
+
     const colors = req.body.colors ? req.body.colors.split(",") : [];
     const materials = req.body.materials ? req.body.materials.split(",") : [];
     const stockValues = req.body.stockAvailability ? req.body.stockAvailability.split(",") : [];
-  
+
     const variations = colors.map((color, colorIndex) => {
       const colorObj = {
         name: color,
         thumb: imageUrls[colorIndex],
       };
-  
+
       const materialsList = materials.map((material) => {
         return {
           name: material,
           slug: material.toLowerCase(),
           thumb: imageUrls[colorIndex],
           price: price,
+          usdPrice : usdPrice,
+          poundPrice : poundPrice,
         };
       });
-  
+
       const sizesArray = req.body.sizes ? req.body.sizes.split(",").map((value) => value.trim()) : [];
       const sizesList = sizesArray.map((size, sizeIndex) => {
         const stockIndex = sizeIndex % stockValues.length;
         const stockAvailability = parseInt(stockValues[stockIndex]) || 0;
-  
+
         return {
           name: size,
           stockAvailability: stockAvailability,
         };
       });
-  
+
       return {
         id: colorIndex + 1,
         title: colorObj.name,
@@ -194,38 +261,39 @@ router.post("/category/:categoryId/userProduct", verifyAdminToken, isAdmin, asyn
         sizes: sizesList,
       };
     });
-  
+
     const userProduct = new UserProduct({
       name, event, discount, type,
       categories: categoryUserProduct,
       tags: categoryUserProduct,
       thumbs: imageUrls.slice(0, 2),
-      previewImages: imageUrls,
-      excerpt, bodyShape, age, clothMeasurement,
-      returnPolicy, publish, totalPrice, variations,
+      previewImages: imageUrls,excerpt, bodyShape, 
+      age, clothMeasurement,returnPolicy, publish,
+       totalPrice, usdTotalPrice, poundTotalPrice, variations,
     });
-  
+
     // Save the userProduct to the database
     await userProduct.save();
-  
+
     // Add the product to the category's products array
     category.userProducts.push(userProduct._id);
     await category.save();
-  
-    res.status(201).json({ success: true, data: { userProduct } });
+
+    res.status(201).json({
+      success: true, data: {
+        userProduct,
+      }
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, error: 'Server error :                  ' , error });
+    res.status(500).json({ success: false, error: 'Server error :                  ', error });
   }
-  
 
 });
 
 
 
-//update
 
-// ================
 router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isAdmin, async (req, res) => {
   const { productId, categoryId } = req.params;
 
@@ -238,7 +306,100 @@ router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isA
     return res.status(404).send({ error: 'Product or Category not found' });
   }
 
+  const files = req.files;
+
+  let uploadPromises;
+  if (req.files && req.files.photos) {
+    if (Array.isArray(files.photos)) {
+      uploadPromises = files.photos.map((file) => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload(
+            file.tempFilePath,
+            {
+              resource_type: "image",
+              format: file.mimetype.split('/')[1],
+            },
+            (err, result) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(result.url);
+              }
+            }
+          );
+        });
+      });
+    } else {
+      uploadPromises = [
+        new Promise((resolve, reject) => {
+          cloudinary.uploader.upload(
+            files.photos.tempFilePath,
+            {
+              resource_type: "image",
+              format: files.photos.mimetype.split('/')[1],
+            },
+            (err, result) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(result.url);
+              }
+            }
+          );
+        })
+      ];
+    }
+  } else {
+    // If no new photos, use the existing photos from the product
+    uploadPromises = product.previewImages.map((imageUrl) => Promise.resolve(imageUrl));
+  }
+
   try {
+    const imageUrls = await Promise.all(uploadPromises);
+
+
+    // Compress and save images
+    const compressedUrls = await Promise.all(imageUrls.map(async (imageUrl) => {
+      const fileName = imageUrl.split('/').pop();
+      const filePath = `tmp/${fileName}`;
+      const compressedPath = `tmp/compressed_${fileName}`;
+      const compression = 60;
+
+      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const imageData = Buffer.from(response.data, 'binary');
+      fs.writeFileSync(filePath, imageData);
+
+      return new Promise((resolve, reject) => {
+        compressImage(filePath, compressedPath, { compress_force: false, statistic: true, autoupdate: true }, false,
+          
+          { jpg: { engine: "mozjpeg", command: ["-quality", compression] } },
+          { png: { engine: "pngquant", command: ["--quality=" + compression + "-" + compression, "-o"] } },
+          { svg: { engine: "svgo", command: "--multipass" } },
+          { gif: { engine: "gifsicle", command: ["--colors", "64", "--use-col=web"] } },
+
+          async function (error, completed, statistic) {
+            if (error) {
+              reject(error);
+            } else {
+              // console.log("-----------------------------------");
+              // console.log(`File from: ${filePath}`);
+              // console.log(`File to: ${compressedPath}`);
+              // console.log(`Compression algorithm: [${statistic.algorithm}]`);
+              // console.log(`Original size: [${(statistic.size_in / (1024 * 1024)).toFixed(2)}MB] | Compressed size: [${(statistic.size_output / (1024 * 1024)).toFixed(2)}MB] | Compression rate: [${((statistic.size_output / statistic.size_in) * 100).toFixed(2)}%]`);
+              // console.log("-----------------------------------");
+    //  if you want response same as termianl response 
+
+              resolve(compressedPath);
+            
+            }
+            fs.unlink(filePath, function (error) {
+              if (error) console.error("Failed to unlink original image:", error);
+            });
+          }
+        );
+      });
+    }));
+
     // Retrieve the product
     const product = await UserProduct.findById(productId);
 
@@ -266,52 +427,9 @@ router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isA
     // product.stockAvailability = req.body.stockAvailability || product.stockAvailability;
 
     // Update the previewImages and thumbs only if new images are being uploaded
-    if (req.files && req.files.photos) {
-      const files = req.files.photos;
-      let newImageUrls;
-
-      if (Array.isArray(files)) {
-        const uploadPromises = files.map((file) => {
-          return new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(
-              file.tempFilePath,
-              {
-                resource_type: 'image',
-                format: file.mimetype.split('/')[1],
-              },
-              (err, result) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(result.url);
-                }
-              }
-            );
-          });
-        });
-        newImageUrls = await Promise.all(uploadPromises);
-      } else {
-        newImageUrls = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload(
-            files.tempFilePath,
-            {
-              resource_type: 'image',
-              format: files.mimetype.split('/')[1],
-            },
-            (err, result) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(result.url);
-              }
-            }
-          );
-        });
-      }
-
-      product.previewImages = newImageUrls || product.previewImages;
-      product.thumbs = newImageUrls && newImageUrls.slice(0, 2) || product.thumbs;
-    }
+   
+  product.previewImages = imageUrls || product.previewImages;
+      product.thumbs = imageUrls && imageUrls.slice(0, 2) || product.thumbs;
 
     // Retrieve the updated product price
     const updatedPrice = parseFloat(req.body.price) || product.price;
@@ -322,8 +440,17 @@ router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isA
     const discountedPrice = updatedPrice - discountAmount;
     const totalPrice = Math.round(discountedPrice);
 
+    const usdExchangeRate = 0.74;
+    const poundExchangeRate = 0.59;
+    const usdTotalPrice = Math.round(totalPrice * usdExchangeRate);
+    const poundTotalPrice = Math.round(totalPrice* poundExchangeRate);
+    const usdPrice = Math.round(updatedPrice * usdExchangeRate);
+    const poundPrice = Math.round(updatedPrice * poundExchangeRate);
+
     product.price = updatedPrice;
     product.totalPrice = totalPrice || product.totalPrice;
+    product.usdTotalPrice = usdTotalPrice || product.usdTotalPrice
+    product.poundTotalPrice = poundTotalPrice || product.poundTotalPrice
 
     // Update the prices of materials for each variation
     if (req.body.materials) {
@@ -351,16 +478,25 @@ router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isA
           // thumb: newImageUrls[0] || variations.color.thumb,
           thumb: product.thumbs[0],
         };
-
+        product.variations.forEach((variation) => {
+          variation.materials.forEach((material) => {
+            material.usdPrice = usdPrice;
+            material.poundPrice = poundPrice;
+          });
+        });
+      
         const materialsList = materials.map(material => {
           return {
             name: material,
             slug: material.toLowerCase(),
             thumb: product.thumbs[0],
-            price: updatedPrice
+            price: updatedPrice,
+            //   product.totalPrice = totalPrice || product.totalPrice;
+            usdPrice: usdPrice,
+            poundPrice: poundPrice,
           };
         });
-
+       
         const sizesList = sizesArray.map((size, sizeIndex) => {
           const stockIndex = sizeIndex % stockValues.length;
           const stockAvailability = parseInt(stockValues[stockIndex])
@@ -402,10 +538,11 @@ router.put('/category/:categoryId/userProduct/:productId', verifyAdminToken, isA
     console.error(error);
     res.status(500).json({
       success: false,
-      error: "Bcakend Server Error : " + error
+      error: "Backend Server Error: " + error
     });
   }
 });
+
 
 
 
