@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const userProductSchema = new mongoose.Schema({
 
   // productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', },
-  name: { type: String, },//product name
+  name: { type: String,  },//product name
   event: String, //product event
   discount: Number, //product discount
   type: [String], //trending , featured
@@ -27,7 +27,8 @@ const userProductSchema = new mongoose.Schema({
       title: String,       //product color 
       color: {
         name: String,    // product color in lowercase
-        thumb: String,  //product img
+        thumb: String,
+        // code: String,  //product img
       },
       materials: [{
         _id: false,

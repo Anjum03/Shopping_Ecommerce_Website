@@ -146,13 +146,6 @@ router.post('/send-whatsapp', async function(req, res, next) {
   }
 });
 
-
-
-
-// 
-// module.exports = router;
-
-
 //----------------------------------------------------------------------runing down part =---------------------------------------------------------------------------------------------------------------------
 
 
@@ -245,10 +238,8 @@ router.post('/send-whatsapp', async function(req, res, next) {
 
 
 
-
-
-
 // const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
 
 
 // Download the helper library from https://www.twilio.com/docs/node/install
@@ -257,6 +248,23 @@ router.post('/send-whatsapp', async function(req, res, next) {
 // const accountSid = process.env.TWILIO_ACCOUNT_SID;
 // const authToken = process.env.TWILIO_AUTH_TOKEN;
 // const client = require('twilio')(accountSid, authToken);
+
+// ----------working for my phone--------
+
+// const accountSid = 'ACa7b91e5ba6fc87cbc5a1de1a3f6a5962';
+// const authToken = '3ec0a158e249984b0ca19b17f0c6a811';
+// const client = require('twilio')(accountSid, authToken);
+
+// client.messages
+//     .create({
+//         body: 'Your appointment is coming up on July 21 at 3PM from twilio',
+//         from: 'whatsapp:+14155238886',
+//         to: 'whatsapp:+919422334995'
+//     })
+//     .then(message => console.log(message.sid))
+// ----------------------------------working for my phone
+    // .done();
+// ---------reply
 
 
 // client.messages
@@ -345,77 +353,77 @@ router.post('/send', async (req, res) => {
 
 // // Define an API endpoint that sends a message to all registered users
 // // Define an API endpoint that sends a message to all registered users
-// router.post('/send', async (req, res) => {
-//     const { message } = req.body;
+router.post('/send', async (req, res) => {
+    const { message } = req.body;
   
-//     if (!message) {
-//       return res.status(400).json({ error: 'Message is required' });
-//     }
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
   
-//     // Retrieve the list of registered users from your database
-//     const users = await User.find().select('phone');
+    // Retrieve the list of registered users from your database
+    const users = await User.find().select('phone');
   
-//     // Loop through each user and send the notification
-//     for (const user of users) {
-//       const notification = new Notification({
-//         recipient: user._id,
-//         message: message,
-//       });
-//       try {
-//         await wp.sendTextMessage(user.phone, { body: message });
-//         notification.statusUpdate = 'Delivered';
-//       } catch (error) {
-//         console.error(`Failed to send notification to ${user.phone}: ${error}`);
-//         notification.statusUpdate = 'Failed';
-//       }
+    // Loop through each user and send the notification
+    for (const user of users) {
+      const notification = new Notification({
+        recipient: user._id,
+        message: message,
+      });
+      try {
+        await wp.sendTextMessage(user.phone, { body: message });
+        notification.statusUpdate = 'Delivered';
+      } catch (error) {
+        console.error(`Failed to send notification to ${user.phone}: ${error}`);
+        notification.statusUpdate = 'Failed';
+      }
   
-//       await notification.save();
-//     }
+      await notification.save();
+    }
   
-//     // Send a response indicating success
-//     res.send('Message sent to all registered users!');
-//     console.log('Message sent to all registered users!');
-//   });
+    // Send a response indicating success
+    res.send('Message sent to all registered users!');
+    console.log('Message sent to all registered users!');
+  });
 
 
   
-  // function getTemplatedMessageInput(recipient, message) {
-  //   return JSON.stringify({
-  //     "messaging_product": "whatsapp",
-  //     "to": recipient,
-  //     "type": "text",
-  //     "text": message
-  //   });
-  // }
+  function getTemplatedMessageInput(recipient, message) {
+    return JSON.stringify({
+      "messaging_product": "whatsapp",
+      "to": recipient,
+      "type": "text",
+      "text": message
+    });
+  }
 
   // const axios = require('axios');
 
-  // function sendMessage(data) {
-  //   const config = {
-  //     method: 'post',
-  //     url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
-  //     headers: {
-  //       'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
-  //       'Content-Type': 'application/json'
-  //     },
-  //     data: data
-  //   };
+  function sendMessage(data) {
+    const config = {
+      method: 'post',
+      url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
+      headers: {
+        'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      data: data
+    };
   
-  //   return axios(config);
-  // }
+    return axios(config);
+  }
   
-  // function getTextMessageInput(recipient, text) {
-  //   return JSON.stringify({
-  //     "messaging_product": "whatsapp",
-  //     "preview_url": false,
-  //     "recipient_type": "individual",
-  //     "to": recipient,
-  //     "type": "text",
-  //     "text": {
-  //       "body": text
-  //     }
-  //   });
-  // }
+  function getTextMessageInput(recipient, text) {
+    return JSON.stringify({
+      "messaging_product": "whatsapp",
+      "preview_url": false,
+      "recipient_type": "individual",
+      "to": recipient,
+      "type": "text",
+      "text": {
+        "body": text
+      }
+    });
+  }
   
 
 
@@ -439,7 +447,6 @@ router.post("/we", (req, res) => {
   router.post('/wa',async(req, res, next) => {
     client.messages
   .create({
-     mediaUrl: ['https://images.unsplash.com/photo-1545093149-618ce3bcf49d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=668&q=80'],
      from: 'whatsapp:+919156942812',
      to: 'whatsapp:+919422334995'
    })
@@ -485,6 +492,106 @@ router.post("/we", (req, res) => {
 //     res.send('Message sent to all registered users!');
 //     console.log(`Message sent to all registered users!`);
 // });
+
+
+
+
+
+
+
+
+
+
+// // Download the helper library from https://www.twilio.com/docs/node/install
+// // Find your Account SID and Auth Token at twilio.com/console
+// // and set the environment variables. See http://twil.io/secure
+// const accountSid = process.env.TWILIO_ACCOUNT_SID;
+// const authToken = process.env.TWILIO_AUTH_TOKEN;
+// const client = require('twilio')(accountSid, authToken);
+
+// client.messages
+//       .create({
+//          from: 'whatsapp:+14155238886',
+//          body: 'Hey, I just met you, and this is crazy...',
+//          statusCallback: 'http://postb.in/1234abcd',
+//          to: 'whatsapp:+919422334995'
+//        })
+//       .then(message => console.log(message.sid));
+
+
+
+
+
+
+
+
+
+// const axios = require('axios');
+
+// const apiKey = 'ae3c9974dcmsh833e7548fd47b1ep1f8ce8jsndd7d602c15f9';
+// const phoneNumber =  +919156942812; // The recipient's phone number in international format (e.g., +1234567890)
+// const message = 'Hello from WhatsApp using RapidAPI!';
+
+// async function sendWhatsAppMessage() {
+//   try {
+//     const response = await axios.post('https://whatsapp_api1.p.rapidapi.com/api/product_id/addPhone', {
+//       to: phoneNumber,
+//       body: message,
+//     }, {
+//       headers: {
+//         'x-rapidapi-host': 'whatsapp-message-send.p.rapidapi.com',
+//         'x-rapidapi-key': apiKey,
+//         'content-type': 'application/json',
+//         'accept': 'application/json',
+//       },
+//     });
+
+//     console.log('Message sent successfully:', response.data);
+//   } catch (error) {
+//     console.error('Error sending message:', error.response.data);
+//   }
+// }
+
+// sendWhatsAppMessage();
+
+
+
+
+
+
+// // const axios = require('axios');
+// router.post('https://getitsms-whatsapp-apis.p.rapidapi.com/45', async (req,res)=>{
+
+// var request = require("request");
+
+// var options = {
+//   method: 'POST',
+//   url: 'https://getitsms-whatsapp-apis.p.rapidapi.com/45',
+//   headers: {'x-api-key': 'YOUR_API_KEY', 'content-type': 'application/json'},
+//   body: {to_number: '447418368160', type: 'text', message_text: 'Hello World!'},
+//   json: true
+// };
+
+// request(options, function (error, response, body) {
+//   if (error) throw new Error(error);
+
+//   console.log(body);
+// });
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -293,6 +293,9 @@ router.post('/purchase', async (req, res) => {
       deliveredAt: new Date().toISOString().split('T')[0],
     });
 
+    //email send to owner only 
+    
+
     // Save the order item to the database
     const savedOrderItem = await orderItem.save();
 
@@ -314,161 +317,166 @@ router.post('/purchase', async (req, res) => {
 
 
 
-//purchase order all record 
-router.get('/purchase', async (req, res) => {
-  try {
-    const purchases = await Purchase.find({})
-    if (!purchases) {
-      return res.status(404).json({ message: 'Purchase not found' }); 
-    }
 
-    res.status(200).json({
-      success: true,
-      message: 'Purchase and associated product and category retrieved successfully',
-      data: purchases,
-    });
-  } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+//
 
 
 
-//purchase order record update by ID
-router.put('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
-  try {
-    const purchase = await Purchase.findByIdAndUpdate(
-      req.params.id,
-      {
-        status: req.body.status
-      },
-      { new: true }
-    )
-
-    await purchase.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Purchase record and Product updated successfully',
-      data: { purchase },
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-
-//delete purchase order record
-router.delete('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
-  try {
-    const purchase = await Purchase.findByIdAndDelete(req.params.id);
-    if (!purchase) {
-      return res.status(404).send();
-    }
-    return res.status(200).json({ success: true, message: 'The puchased items is deleted!' });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
-
-
-
-//total Sales
-router.get('/purchase/totalSale', verifyAdminToken, isAdmin, async (req, res) => {
-  try {
-
-    const totalSales = await Purchase.aggregate([
-
-      { $group: { _id: null, totalsales: { $sum: '$totalPrice' } } },
-
-    ]);
-
-    if (!totalSales) {
-      return res.status(400).json({ success: false, message: `The order sales cannot be generated` });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Total Sales retrieved successfully',
-      data: { totalsales: totalSales.pop().totalsales },
-    });
-
-  } catch (error) {
-    return res.status(500).json({ success: false, error: 'Server error' });
-  }
-
-});
-
-
-
-// //order Count
-router.get('/purchase/count', verifyAdminToken, isAdmin, async (req, res) => {
-
-  try {
-
-    const orderCount = await Purchase.countDocuments()
-
-    if (!orderCount) {
-      res.status(500).json({ success: false, message: `Order Coun not Found....` })
-    }
-
-    res.status(200).json({ success: true, message: `Total Order Count `, data: orderCount })
-
-  } catch (error) {
-    return res.status(500).json({ success: false, error: 'Server error' });
-  }
-
-})
-
-
-
-// //purchase order by id record 
-router.get('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
-  try {
-    const purchase = await Purchase.findById(req.params.id).populate('items.productId');
-    if (!purchase) {
-      return res.status(404).send();
-    }
-
-    if (!purchase) {
-      return res.status(404).json({ message: 'Purchase not found' });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Purchase and associated product and category retrieved successfully',
-      data: purchase,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-
-//user history
-// router.get('/purchase/userOrder/:userId', verifyUserToken, verifyAdminToken, isAdmin, async (req, res) => {
+// //purchase order all record 
+// router.get('/purchase', async (req, res) => {
 //   try {
-//     userId = req.user._id;
-//     //get user's cart
-//     const userOrderList = await Purchase.findOne(userId)
-//       .populate('items.productId')
-//       .sort({ 'dateOrder': -1 });
-//     if (!userOrderList) {
-//       return res.status(404).json({ message: 'No purchase history found for this user' });
+//     const purchases = await Purchase.find({})
+//     if (!purchases) {
+//       return res.status(404).json({ message: 'Purchase not found' }); 
 //     }
 
 //     res.status(200).json({
 //       success: true,
-//       message: ' userOrderList of Purchase and associated product and category retrieved successfully',
-//       data: userOrderList,
+//       message: 'Purchase and associated product and category retrieved successfully',
+//       data: purchases,
+//     });
+//   } catch (error) {
+//     console.log(error)
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
+
+
+// //purchase order record update by ID
+// router.put('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
+//   try {
+//     const purchase = await Purchase.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         status: req.body.status
+//       },
+//       { new: true }
+//     )
+
+//     await purchase.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Purchase record and Product updated successfully',
+//       data: { purchase },
 //     });
 //   } catch (error) {
 //     res.status(500).json({ message: 'Internal server error' });
 //   }
 // });
+
+
+
+// //delete purchase order record
+// router.delete('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
+//   try {
+//     const purchase = await Purchase.findByIdAndDelete(req.params.id);
+//     if (!purchase) {
+//       return res.status(404).send();
+//     }
+//     return res.status(200).json({ success: true, message: 'The puchased items is deleted!' });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, error: 'Server error' });
+//   }
+// });
+
+
+
+// //total Sales
+// router.get('/purchase/totalSale', verifyAdminToken, isAdmin, async (req, res) => {
+//   try {
+
+//     const totalSales = await Purchase.aggregate([
+
+//       { $group: { _id: null, totalsales: { $sum: '$totalPrice' } } },
+
+//     ]);
+
+//     if (!totalSales) {
+//       return res.status(400).json({ success: false, message: `The order sales cannot be generated` });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Total Sales retrieved successfully',
+//       data: { totalsales: totalSales.pop().totalsales },
+//     });
+
+//   } catch (error) {
+//     return res.status(500).json({ success: false, error: 'Server error' });
+//   }
+
+// });
+
+
+
+// // //order Count
+// router.get('/purchase/count', verifyAdminToken, isAdmin, async (req, res) => {
+
+//   try {
+
+//     const orderCount = await Purchase.countDocuments()
+
+//     if (!orderCount) {
+//       res.status(500).json({ success: false, message: `Order Coun not Found....` })
+//     }
+
+//     res.status(200).json({ success: true, message: `Total Order Count `, data: orderCount })
+
+//   } catch (error) {
+//     return res.status(500).json({ success: false, error: 'Server error' });
+//   }
+
+// })
+
+
+
+// // //purchase order by id record 
+// router.get('/purchase/:id', verifyAdminToken, isAdmin, verifyUserToken, async (req, res) => {
+//   try {
+//     const purchase = await Purchase.findById(req.params.id).populate('items.productId');
+//     if (!purchase) {
+//       return res.status(404).send();
+//     }
+
+//     if (!purchase) {
+//       return res.status(404).json({ message: 'Purchase not found' });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Purchase and associated product and category retrieved successfully',
+//       data: purchase,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
+
+
+// //user history
+// // router.get('/purchase/userOrder/:userId', verifyUserToken, verifyAdminToken, isAdmin, async (req, res) => {
+// //   try {
+// //     userId = req.user._id;
+// //     //get user's cart
+// //     const userOrderList = await Purchase.findOne(userId)
+// //       .populate('items.productId')
+// //       .sort({ 'dateOrder': -1 });
+// //     if (!userOrderList) {
+// //       return res.status(404).json({ message: 'No purchase history found for this user' });
+// //     }
+
+// //     res.status(200).json({
+// //       success: true,
+// //       message: ' userOrderList of Purchase and associated product and category retrieved successfully',
+// //       data: userOrderList,
+// //     });
+// //   } catch (error) {
+// //     res.status(500).json({ message: 'Internal server error' });
+// //   }
+// // });
 
 
 module.exports = router;

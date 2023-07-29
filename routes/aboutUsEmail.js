@@ -9,7 +9,6 @@ const Category = require('../model/categoryModel');
 const Product = require('../model/userProductModel');
 
 
-
 // Receive Email for Query
 router.post('/aboutUsEmail', async (req, res) => {
   const {name , email, message, subject } = req.body;
