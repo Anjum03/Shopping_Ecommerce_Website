@@ -27,18 +27,6 @@ router.get('/orderitem/:userId', async (req, res) => {
 });
 
 
-
-// // Create a new order item
-// router.post('/', verifyAdminToken, async (req, res) => {
-//   try {
-//     const orderItem = new OrderItem(req.body);
-//     await orderItem.save();
-//     res.status(201).send(orderItem);
-//   } catch (error) {
-//     res.status(400).send(error);
-//   }
-// });
-
 // Get all order items
 router.get('/orderitem', async (req, res) => {
   try {
